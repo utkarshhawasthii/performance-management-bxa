@@ -4,6 +4,7 @@ import com.example.performance_management_system.common.exception.BusinessExcept
 import com.example.performance_management_system.review.model.Review;
 import com.example.performance_management_system.review.repository.ReviewRepository;
 import com.example.performance_management_system.reviewcycle.repository.ReviewCycleRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,7 +33,7 @@ public class ReviewService {
 
         return repository.save(review);
     }
-
+    @PreAuthorize("hasRole('EMPLOYEE')")
     @Transactional
     public Review submitSelfReview(Long reviewId, String comments) {
         Review review = get(reviewId);
@@ -41,6 +42,7 @@ public class ReviewService {
         return repository.save(review);
     }
 
+    @PreAuthorize("hasRole('MANAGER')")
     @Transactional
     public Review submitManagerReview(Long reviewId, String comments) {
         Review review = get(reviewId);

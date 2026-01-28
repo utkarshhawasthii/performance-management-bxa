@@ -7,6 +7,7 @@ import com.example.performance_management_system.keyresult.model.KeyResult;
 import com.example.performance_management_system.performancecycle.model.PerformanceCycle;
 import com.example.performance_management_system.performancecycle.service.PerformanceCycleService;
 import com.example.performance_management_system.goal.repository.GoalRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class GoalService {
         this.cycleService = cycleService;
     }
 
+    @PreAuthorize("hasRole('EMPLOYEE') or hasRole('MANAGER')")
     @Transactional
     public Goal createGoal(CreateGoalRequest req) {
 
@@ -51,6 +53,7 @@ public class GoalService {
         return goalRepository.save(goal);
     }
 
+    @PreAuthorize("hasRole('MANAGER')")
     @Transactional
     public Goal approveGoal(Long goalId) {
         Goal goal = findGoal(goalId);

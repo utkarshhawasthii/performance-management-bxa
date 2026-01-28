@@ -3,6 +3,7 @@ package com.example.performance_management_system.performancecycle.controller;
 import com.example.performance_management_system.performancecycle.dto.CreatePerformanceCycleRequest;
 import com.example.performance_management_system.performancecycle.model.PerformanceCycle;
 import com.example.performance_management_system.performancecycle.service.PerformanceCycleService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,6 +16,7 @@ public class PerformanceCycleController {
         this.service = service;
     }
 
+    @PreAuthorize("hasRole('HR') or hasRole('ADMIN')")
     @PostMapping
     public PerformanceCycle create(@RequestBody CreatePerformanceCycleRequest req) {
 
@@ -28,11 +30,13 @@ public class PerformanceCycleController {
         return service.createCycle(cycle);
     }
 
+    @PreAuthorize("hasRole('HR')")
     @PostMapping("/{id}/start")
     public PerformanceCycle start(@PathVariable Long id) {
         return service.startCycle(id);
     }
 
+    @PreAuthorize("hasRole('HR')")
     @PostMapping("/{id}/close")
     public PerformanceCycle close(@PathVariable Long id) {
         return service.closeCycle(id);

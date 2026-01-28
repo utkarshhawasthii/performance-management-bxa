@@ -6,6 +6,7 @@ import com.example.performance_management_system.rating.dto.CalibrateRatingReque
 import com.example.performance_management_system.rating.dto.CreateRatingRequest;
 import com.example.performance_management_system.rating.model.Rating;
 import com.example.performance_management_system.rating.repository.RatingRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +40,7 @@ public class RatingService {
         return repository.save(rating);
     }
 
+    @PreAuthorize("hasRole('MANAGER')")
     @Transactional
     public Rating submitByManager(Long ratingId) {
         Rating rating = get(ratingId);
@@ -46,6 +48,7 @@ public class RatingService {
         return repository.save(rating);
     }
 
+    @PreAuthorize("hasRole('HR')")
     @Transactional
     public Rating calibrate(Long ratingId, CalibrateRatingRequest req) {
         Rating rating = get(ratingId);
@@ -53,6 +56,7 @@ public class RatingService {
         return repository.save(rating);
     }
 
+    @PreAuthorize("hasRole('LEADERSHIP')")
     @Transactional
     public Rating finalizeRating(Long ratingId) {
         Rating rating = get(ratingId);
