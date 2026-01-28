@@ -13,4 +13,5 @@ public class CreateRatingRequest {
     @Min(value = 1, message = "Minimum rating is 1")
     @Max(value = 5, message = "Maximum rating is 5")
     public Double score;
+    public String managerJustification;
 }
