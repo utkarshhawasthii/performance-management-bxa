@@ -1,10 +1,10 @@
-package com.example.performance_management_system.user.dto;
+package com.example.performance_management_system.auth.dto;
 
 import com.example.performance_management_system.common.enums.Role;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-public class CreateUserRequest {
+public class SignupRequest {
 
     @NotBlank
     public String username;
