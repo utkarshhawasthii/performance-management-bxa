@@ -1,8 +1,10 @@
 package com.example.performance_management_system.department.controller;
 
 
+import com.example.performance_management_system.department.dto.CreateDepartmentRequest;
 import com.example.performance_management_system.department.model.Department;
 import com.example.performance_management_system.department.service.DepartmentService;
+import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,12 +20,12 @@ public class DepartmentController {
     }
 
     @PostMapping
-    public Department create(@RequestBody Department dept) {
-        return service.create(dept);
+    public Department create(@Valid @RequestBody CreateDepartmentRequest request) {
+        return service.getOrCreate(
+                request.type,
+                request.displayName,
+                request.headId
+        );
     }
 
-    @GetMapping("/{id}")
-    public Department get(@PathVariable Long id) {
-        return service.get(id);
-    }
 }

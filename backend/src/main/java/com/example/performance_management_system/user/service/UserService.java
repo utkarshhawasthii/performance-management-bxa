@@ -1,95 +1,95 @@
 package com.example.performance_management_system.user.service;
 
+import com.example.performance_management_system.common.enums.DepartmentType;
 import com.example.performance_management_system.common.enums.Role;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.config.security.SecurityUtil;
+import com.example.performance_management_system.department.model.Department;
+import com.example.performance_management_system.department.service.DepartmentService;
 import com.example.performance_management_system.role.model.RoleEntity;
 import com.example.performance_management_system.role.repository.RoleRepository;
+import com.example.performance_management_system.user.dto.CreateUserRequest;
 import com.example.performance_management_system.user.model.User;
 import com.example.performance_management_system.user.repository.UserRepository;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import jakarta.transaction.Transactional;
+import jakarta.validation.Valid;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 public class UserService {
 
-    private final UserRepository repository;
+    private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final DepartmentService departmentService;
     private final PasswordEncoder passwordEncoder;
 
-
-    public UserService(UserRepository repository, RoleRepository roleRepository,PasswordEncoder passwordEncoder) {
-        this.repository = repository;
+    public UserService(UserRepository userRepository,
+                       RoleRepository roleRepository,
+                       DepartmentService departmentService,
+                       PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.departmentService = departmentService;
         this.passwordEncoder = passwordEncoder;
     }
 
-    public User getByUsername(String username) {
-        return repository.findByUsername(username)
+    @Transactional
+    public User createUser(@Valid CreateUserRequest request) {
+
+        // RBAC SAFETY
+        String currentRole = SecurityUtil.role();
+        if (!currentRole.equals("ADMIN") && !currentRole.equals("HR")) {
+            throw new BusinessException("Only HR or ADMIN can create users");
+        }
+
+        RoleEntity role = roleRepository.findByName(request.role)
+                .orElseThrow(() -> new BusinessException("Role not found"));
+
+        Department department = departmentService.getOrCreate(
+                request.departmentType,
+                request.departmentDisplayName,
+                request.managerId
+        );
+
+        User user = new User();
+        user.setName(request.username);
+        user.setEmail(request.email);
+        user.setPassword(passwordEncoder.encode(request.password));
+        user.setRole(role);
+        user.setDepartment(department);
+        user.setManagerId(request.managerId);
+        user.setActive(true);
+
+        return userRepository.save(user);
+    }
+
+    public User getByEmail(String email) {
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new BusinessException("User not found"));
     }
 
     public User getById(Long id) {
-        return repository.findById(id)
+        return userRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("User not found"));
     }
 
-    public List<User> getAllUsers() {
-        return repository.findAll();
-    }
-
-    public Page<User> getAllUsersPaginated(int page, int size) {
-        return repository.findAll(PageRequest.of(page, size));
-    }
-
-
-
-    public User createUser(String username, String password, Role role, Long managerId) {
-        String roleCheck = SecurityUtil.role();
-
-        if (!roleCheck.equals("ADMIN") && !roleCheck.equals("HR")) {
-            throw new BusinessException("Only HR or ADMIN can create users");
-        }
-
-        if (repository.findByUsername(username).isPresent()) {
-            throw new BusinessException("Username already exists");
-        }
-
-        RoleEntity roleEntity  = roleRepository.findById(role)
-                .orElseThrow(() -> new BusinessException("Role not found"));
-
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(password));
-        user.setRole(roleEntity);
-        user.setManagerId(managerId);
-        user.setActive(true);
-
-        return repository.save(user);
-    }
-
-    public User registerUser(String username,
-                             String rawPassword,
+    public User registerUser(String name,
+                             String email,
+                             String password,
                              Role role,
-                             Long managerId){
-        if(repository.findByUsername(username).isPresent()){
-            throw new BusinessException("Username already Exists");
-        }
+                             DepartmentType departmentType,
+                             Long managerId) {
 
-        RoleEntity roleEntity = roleRepository.findById(role)
-                .orElseThrow(() -> new BusinessException("Role not found"));
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(rawPassword));
-        user.setRole(roleEntity);
-        user.setManagerId(managerId);
-        user.setActive(true);
+        CreateUserRequest request = new CreateUserRequest();
+        request.username = name;
+        request.email = email;
+        request.password = password;
+        request.role = role;
+        request.departmentType = departmentType;
+        request.managerId = managerId;
 
-        return repository.save(user);
+        return createUser(request);
     }
-}
 
+}

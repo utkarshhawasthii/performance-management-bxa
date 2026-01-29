@@ -8,7 +8,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 public class PerformanceManagementSystemApplication {
 
 	public static void main(String[] args) {
-		System.out.println(new BCryptPasswordEncoder().encode("12344321"));
+		System.out.println(new BCryptPasswordEncoder().encode("Admin@123"));
 		SpringApplication.run(PerformanceManagementSystemApplication.class, args);
 	}
 

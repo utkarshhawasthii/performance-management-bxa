@@ -11,48 +11,19 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
 
-    private final UserService service;
+    private final UserService userService;
 
-    public UserController(UserService service) {
-        this.service = service;
+    public UserController(UserService userService) {
+        this.userService = userService;
     }
 
-    // Create user
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN') or hasRole('HR')")
-    public User createUser(@Valid @RequestBody CreateUserRequest request) {
-        return service.createUser(
-                request.username,
-                request.password,
-                request.role,
-                request.managerId
-        );
-    }
-
-    // Get user by ID
-    @GetMapping("/{id}")
-    public User getUser(@PathVariable Long id) {
-        return service.getById(id);
-    }
-
-    // List all users
-    @GetMapping
-    public List<User> getAllUsers() {
-        return service.getAllUsers();
-    }
-
-    // Paginated list
-    @GetMapping("/page")
-    public Page<User> getUsersPaginated(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
-    ) {
-        return service.getAllUsersPaginated(page, size);
+    public User create(@Valid @RequestBody CreateUserRequest request) {
+        return userService.createUser(request);
     }
 }

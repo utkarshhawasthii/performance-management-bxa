@@ -1,22 +1,26 @@
 package com.example.performance_management_system.role.model;
 
+import com.example.performance_management_system.common.enums.Role;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
+@Getter
+@Setter
 @Table(name = "role")
 public class RoleEntity {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Enumerated(EnumType.STRING)
-    private com.example.performance_management_system.common.enums.Role name;
+    @Column(nullable = false, unique = true)
+    private Role name; // ADMIN, HR, etc.
 
-    public RoleEntity() {}
+    @Lob
+    private String permissions;
 
-    public RoleEntity(com.example.performance_management_system.common.enums.Role name) {
-        this.name = name;
-    }
-
-    public com.example.performance_management_system.common.enums.Role getName() {
-        return name;
-    }
+    // getters & setters
 }

@@ -24,36 +24,20 @@ public class AuthController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    @PostMapping("/signup")
-    public String signup(@Valid @RequestBody SignupRequest request){
-        User user = userService.registerUser(
-                request.username,
-                request.password,
-                request.role,
-                request.managerId
-        );
-
-        return jwtUtil.generateToken(
-                user.getId(),
-                user.getUsername(),
-                user.getRole().getName().name()
-        );
-    }
-
     @PostMapping("/login")
     public String login(@Valid @RequestBody LoginRequest request) {
 
-        User user = userService.getByUsername(request.getUsername());
+        User user = userService.getByEmail(request.getEmail());
 
-        // TEMP: plaintext check (hash later)
-        if (!passwordEncoder.matches(request.getPassword(),user.getPassword())) {
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new BadCredentialsException("Invalid credentials");
         }
 
         return jwtUtil.generateToken(
                 user.getId(),
-                user.getUsername(),
+                user.getEmail(),              // 👈 subject
                 user.getRole().getName().name()
         );
     }
+
 }
