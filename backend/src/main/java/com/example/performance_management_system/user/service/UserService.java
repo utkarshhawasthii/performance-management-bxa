@@ -13,6 +13,8 @@ import com.example.performance_management_system.user.model.User;
 import com.example.performance_management_system.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -98,6 +100,11 @@ public class UserService {
         user.setEmail(email);
 
         return userRepository.save(user);
+    }
+
+
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
 
