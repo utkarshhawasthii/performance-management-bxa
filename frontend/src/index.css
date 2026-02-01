@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+/* 1. Remove default browser margins */
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+}
+
+/* 2. Force the root React container to fill the screen */
+#root {
+  width: 100vw;
+  height: 100vh;
+}
