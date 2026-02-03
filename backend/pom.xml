@@ -42,6 +42,18 @@
             <version>2.5.0</version> <!-- Check Maven Repository for the latest stable version if needed -->
         </dependency>
 
+        <!-- Source: https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
+
+
+        <!-- Source: https://mvnrepository.com/artifact/org.springframework.kafka/spring-kafka -->
+        <!-- Source: https://mvnrepository.com/artifact/org.springframework.kafka/spring-kafka -->
+        <dependency>
+            <groupId>org.springframework.kafka</groupId>
+            <artifactId>spring-kafka</artifactId>
+            <version>3.3.12</version>
+            <scope>compile</scope>
+        </dependency>
+
 
         <dependency>
 			<groupId>org.projectlombok</groupId>

@@ -6,6 +6,11 @@ import com.example.performance_management_system.common.exception.BusinessExcept
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.department.model.Department;
 import com.example.performance_management_system.department.service.DepartmentService;
+import com.example.performance_management_system.event.Actor;
+import com.example.performance_management_system.event.AuditEvent;
+import com.example.performance_management_system.event.DomainType;
+import com.example.performance_management_system.event.EventType;
+import com.example.performance_management_system.event.producer.AuditEventProducer;
 import com.example.performance_management_system.role.model.RoleEntity;
 import com.example.performance_management_system.role.repository.RoleRepository;
 import com.example.performance_management_system.user.dto.CreateUserRequest;
@@ -19,6 +24,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
+
 @Service
 public class UserService {
 
@@ -26,15 +33,20 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final DepartmentService departmentService;
     private final PasswordEncoder passwordEncoder;
+    private final AuditEventProducer auditEventProducer;
+
 
     public UserService(UserRepository userRepository,
                        RoleRepository roleRepository,
                        DepartmentService departmentService,
-                       PasswordEncoder passwordEncoder) {
+                       PasswordEncoder passwordEncoder,
+                       AuditEventProducer auditEventProducer
+    ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.departmentService = departmentService;
         this.passwordEncoder = passwordEncoder;
+        this.auditEventProducer = auditEventProducer;
     }
 
     @Transactional
@@ -120,6 +132,11 @@ public class UserService {
             throw new BusinessException("Use /api/auth/me to update your own profile");
         }
 
+        String oldRole = user.getRole().getName().name();
+        Long oldDepartmentId = user.getDepartment().getId();
+
+
+
         // Email uniqueness check
         if (!user.getEmail().equals(request.email)
                 && userRepository.findByEmail(request.email).isPresent()) {
@@ -142,7 +159,25 @@ public class UserService {
         user.setManagerId(request.managerId);
         user.setActive(request.active);
 
-        return userRepository.save(user);
+        User updated = userRepository.save(user);
+
+        AuditEvent event = AuditEvent.of(
+                EventType.USER_UPDATED,
+                DomainType.USER,
+                updated.getId().toString(),
+                new Actor(SecurityUtil.userId(), SecurityUtil.role()),
+                Map.of(
+                        "oldRole", oldRole,
+                        "newRole", updated.getRole().getName().name(),
+                        "oldDepartmentId", oldDepartmentId,
+                        "newDepartmentId", updated.getDepartment().getId()
+                )
+        );
+
+        auditEventProducer.publish(event);
+
+        return updated;
+
     }
 
 
