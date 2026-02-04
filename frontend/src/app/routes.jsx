@@ -11,6 +11,11 @@ import EmployeeDashboard from "../features/dashboard/pages/EmployeeDashboard";
 import MyGoalsPage from "../features/goals/pages/MyGoalsPage";
 import TeamGoalsPage from "../features/goals/pages/TeamGoalsPage";
 import PerformanceCycleList from "../features/performanceCycles/pages/PerformanceCycleList";
+import ReviewCyclePage from "../features/reviewCycles/pages/ReviewCyclePage";
+import RequireRole from "../components/common/RequireRole";
+import ManagerRatingsPage from "../features/ratings/pages/ManagerRatingsPage";
+import HrCalibrationPage from "../features/ratings/pages/HrCalibrationPage";
+import FinalRatingsPage from "../features/ratings/pages/FinalRatingsPage";
 
 const AppRoutes = () => {
   return (
@@ -43,6 +48,20 @@ const AppRoutes = () => {
            </Route>
          </Route>
        </Route>
+
+       <Route
+         path="/review-cycles"
+         element={
+           <RequireRole roles={["HR", "ADMIN"]}>
+             <ReviewCyclePage />
+           </RequireRole>
+         }
+       />
+
+       <Route path="/ratings/manager" element={<RequireRole roles={["MANAGER"]}><ManagerRatingsPage /></RequireRole>} />
+       <Route path="/ratings/hr" element={<RequireRole roles={["HR"]}><HrCalibrationPage /></RequireRole>} />
+       <Route path="/ratings/final" element={<RequireRole roles={["LEADERSHIP"]}><FinalRatingsPage /></RequireRole>} />
+
 
 
       </Routes>

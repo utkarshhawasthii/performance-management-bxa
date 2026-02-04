@@ -55,6 +55,10 @@ public class ReviewService {
             throw new BusinessException("Review Cycle is not Active");
         }
 
+        if (!review.getReviewCycle().getSelfReviewEnabled()) {
+            throw new BusinessException("Self review is disabled for this cycle");
+        }
+
         review.submitSelfReview();
         review.setSelfReviewComments(comments);
 
@@ -68,6 +72,11 @@ public class ReviewService {
     public Review submitManagerReview(Long reviewId, String comments) {
 
         Review review = get(reviewId);
+
+        if (!review.getReviewCycle().getManagerReviewEnabled()) {
+            throw new BusinessException("Manager review is disabled for this cycle");
+        }
+
 
         Long managerId = SecurityUtil.userId();
         String role = SecurityUtil.role();

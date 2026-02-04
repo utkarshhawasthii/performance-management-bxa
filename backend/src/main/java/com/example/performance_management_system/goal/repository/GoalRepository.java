@@ -13,6 +13,11 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
 
     Page<Goal> findByPerformanceCycle_Id(Long cycleId, Pageable pageable);
 
+    List<Goal> findByEmployeeIdInAndPerformanceCycle_Id(
+            List<Long> employeeIds,
+            Long performanceCycleId
+    );
+
     Page<Goal> findByEmployeeIdInAndPerformanceCycle_Id(
             List<Long> employeeIds,
             Long cycleId,

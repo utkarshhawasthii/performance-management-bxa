@@ -1,8 +1,15 @@
+import { submitGoal, approveGoal, rejectGoal } from "../goals.store";
+import { authStore } from "../../../auth/auth.store";
+import KeyResultProgress from "./KeyResultProgress";
+
 const GoalsTable = ({ goals }) => {
-  if (!goals || goals.length === 0) {
+  const { user } = authStore.getState();
+
+  // 🔒 Safety: handle empty / undefined goals
+  if (!Array.isArray(goals) || goals.length === 0) {
     return (
       <div className="bg-white p-12 rounded-xl border border-dashed border-slate-300 text-center text-slate-500">
-        <p>No goals found. Start by creating one!</p>
+        <p>No goals found.</p>
       </div>
     );
   }
@@ -10,44 +17,83 @@ const GoalsTable = ({ goals }) => {
   return (
     <div className="grid grid-cols-1 gap-4">
       {goals.map((goal) => (
-        <div key={goal.id} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
-
-          {/* Goal Header */}
+        <div
+          key={goal.id}
+          className="bg-white rounded-xl shadow-sm border border-slate-200 p-6"
+        >
+          {/* -------- GOAL HEADER -------- */}
           <div className="flex justify-between items-start mb-4">
             <div>
-              <h3 className="text-lg font-bold text-slate-800">{goal.title}</h3>
-              <p className="text-slate-500 text-sm mt-1">{goal.description}</p>
+              <h3 className="text-lg font-bold text-slate-800">
+                {goal.title}
+              </h3>
+              {goal.description && (
+                <p className="text-slate-500 text-sm mt-1">
+                  {goal.description}
+                </p>
+              )}
             </div>
-            <span className={`px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wide ${
-              goal.status === 'COMPLETED' ? 'bg-green-100 text-green-700' : 'bg-blue-50 text-blue-700'
-            }`}>
-              {goal.status || 'In Progress'}
+
+            <span
+              className={`px-2.5 py-0.5 rounded text-xs font-bold uppercase
+                ${
+                  goal.status === "COMPLETED"
+                    ? "bg-green-100 text-green-700"
+                    : goal.status === "REJECTED"
+                    ? "bg-red-100 text-red-700"
+                    : goal.status === "SUBMITTED"
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-blue-100 text-blue-700"
+                }`}
+            >
+              {goal.status}
             </span>
           </div>
 
-          {/* Key Results Progress */}
+          {/* -------- KEY RESULTS -------- */}
           <div className="space-y-3">
-            {goal.keyResults?.map((kr) => {
-              const progress = Math.min(100, Math.round((kr.currentValue / kr.targetValue) * 100)) || 0;
-              return (
-                <div key={kr.id} className="bg-slate-50 rounded-lg p-3 border border-slate-100">
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="font-medium text-slate-700">{kr.metric}</span>
-                    <span className="text-slate-500 text-xs">
-                      {kr.currentValue} / <span className="text-slate-900 font-semibold">{kr.targetValue}</span>
-                    </span>
-                  </div>
-                  <div className="w-full bg-slate-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${progress}%` }}
-                    ></div>
-                  </div>
-                </div>
-              );
-            })}
+            {Array.isArray(goal.keyResults) &&
+              goal.keyResults.map((kr) => (
+                <KeyResultProgress key={kr.id} kr={kr} />
+              ))}
           </div>
 
+          {/* -------- ACTIONS -------- */}
+          <div className="flex gap-3 mt-4">
+            {/* EMPLOYEE: Submit */}
+            {user.role === "EMPLOYEE" &&
+              goal.status === "DRAFT" && (
+                <button
+                  onClick={() => submitGoal(goal.id)}
+                  className="px-4 py-1.5 text-sm font-semibold rounded bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  Submit
+                </button>
+              )}
+
+            {/* MANAGER: Approve / Reject */}
+            {user.role === "MANAGER" &&
+              goal.status === "SUBMITTED" && (
+                <>
+                  <button
+                    onClick={() => approveGoal(goal.id)}
+                    className="px-4 py-1.5 text-sm font-semibold rounded bg-green-600 text-white hover:bg-green-700"
+                  >
+                    Approve
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const reason = prompt("Rejection reason:");
+                      if (reason) rejectGoal(goal.id, reason);
+                    }}
+                    className="px-4 py-1.5 text-sm font-semibold rounded bg-red-600 text-white hover:bg-red-700"
+                  >
+                    Reject
+                  </button>
+                </>
+              )}
+          </div>
         </div>
       ))}
     </div>

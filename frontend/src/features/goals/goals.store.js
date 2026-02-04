@@ -4,7 +4,8 @@ import {
   submitGoalApi,
   approveGoalApi,
   rejectGoalApi,
-  getTeamGoalsApi   // API function
+  getTeamGoalsApi,   // API function
+  updateKeyResultProgressApi
 } from "./goals.api";
 
 
@@ -93,6 +94,35 @@ export async function fetchTeamGoals(page = 0) {
     setState({ goals: [], loading: false });
   }
 }
+
+export async function updateKeyResultProgress(keyResultId, value) {
+  try {
+    await updateKeyResultProgressApi(keyResultId, value);
+
+    // 🔥 Optimistic update in store
+    setState({
+      myGoals: state.myGoals.map(goal => ({
+        ...goal,
+        keyResults: goal.keyResults.map(kr =>
+          kr.id === keyResultId
+            ? { ...kr, currentValue: value }
+            : kr
+        )
+      })),
+      teamGoals: state.teamGoals.map(goal => ({
+        ...goal,
+        keyResults: goal.keyResults.map(kr =>
+          kr.id === keyResultId
+            ? { ...kr, currentValue: value }
+            : kr
+        )
+      }))
+    });
+  } catch (e) {
+    alert("Failed to update progress");
+  }
+}
+
 
 
 

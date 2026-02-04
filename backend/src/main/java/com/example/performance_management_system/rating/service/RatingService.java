@@ -6,6 +6,7 @@ import com.example.performance_management_system.performancecycle.service.Perfor
 import com.example.performance_management_system.rating.dto.CalibrateRatingRequest;
 import com.example.performance_management_system.rating.dto.CreateRatingRequest;
 import com.example.performance_management_system.rating.model.Rating;
+import com.example.performance_management_system.rating.model.RatingStatus;
 import com.example.performance_management_system.rating.repository.RatingRepository;
 import com.example.performance_management_system.user.service.HierarchyService;
 import org.springframework.data.domain.Page;
@@ -29,6 +30,7 @@ public class RatingService {
         this.hierarchyService = hierarchyService;
     }
 
+    @PreAuthorize("hasRole('MANAGER') or hasRole('HR')")
     @Transactional
     public Rating createRating(CreateRatingRequest req) {
 
@@ -53,6 +55,11 @@ public class RatingService {
 
         Rating rating = get(ratingId);
 
+        if (rating.getStatus() != RatingStatus.DRAFT) {
+            throw new BusinessException("Rating is not in draft state");
+        }
+
+
         Long managerId = SecurityUtil.userId();
         String role = SecurityUtil.role();
 
@@ -72,6 +79,10 @@ public class RatingService {
     @Transactional
     public Rating calibrate(Long ratingId, CalibrateRatingRequest req) {
         Rating rating = get(ratingId);
+        if (rating.getStatus() != RatingStatus.MANAGER_SUBMITTED) {
+            throw new BusinessException("Rating must be manager submitted before calibration");
+        }
+
         rating.calibrateByHr(req.newScore, req.justification);
         return repository.save(rating);
     }
@@ -80,6 +91,10 @@ public class RatingService {
     @Transactional
     public Rating finalizeRating(Long ratingId) {
         Rating rating = get(ratingId);
+        if (rating.getStatus() != RatingStatus.HR_CALIBRATED) {
+            throw new BusinessException("Rating must be calibrated before finalization");
+        }
+
         rating.finalizeRating();
         return repository.save(rating);
     }

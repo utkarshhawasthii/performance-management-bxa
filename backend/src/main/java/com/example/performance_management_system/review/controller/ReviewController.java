@@ -19,21 +19,30 @@ public class ReviewController {
         this.service = service;
     }
 
-    @PostMapping("/{id}/self-review")
-    public Review submitSelfReview(@Valid @PathVariable Long id,
-                                   @RequestBody SubmitReviewRequest req) {
-        return service.submitSelfReview(id, req.comments);
+    // 🔹 Employee submits self review
+    @PostMapping("/{id}/self")
+    @PreAuthorize("hasRole('EMPLOYEE')")
+    public Review submitSelfReview(
+            @PathVariable Long id,
+            @Valid @RequestBody SubmitReviewRequest request
+    ) {
+        return service.submitSelfReview(id, request.comments);
     }
 
-    @PostMapping("/{id}/manager-review")
-    public Review submitManagerReview(@Valid @PathVariable Long id,
-                                      @RequestBody SubmitReviewRequest req) {
-        return service.submitManagerReview(id, req.comments);
+    // 🔹 Manager submits manager review
+    @PostMapping("/{id}/manager")
+    @PreAuthorize("hasRole('MANAGER')")
+    public Review submitManagerReview(
+            @PathVariable Long id,
+            @Valid @RequestBody SubmitReviewRequest request
+    ) {
+        return service.submitManagerReview(id, request.comments);
     }
 
+    // 🔹 Manager fetches reviews
     @GetMapping("/manager")
     @PreAuthorize("hasRole('MANAGER')")
-    public Page<Review> getMyTeamReviews(
+    public Page<Review> getManagerReviews(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {

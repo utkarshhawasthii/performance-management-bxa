@@ -7,6 +7,8 @@ import com.example.performance_management_system.reviewcycle.repository.ReviewCy
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class ReviewCycleService {
 
@@ -42,5 +44,10 @@ public class ReviewCycleService {
         cycle.close();
         return repository.save(cycle);
     }
+
+    public List<ReviewCycle> getAll() {
+        return repository.findAll();
+    }
+
 }
 

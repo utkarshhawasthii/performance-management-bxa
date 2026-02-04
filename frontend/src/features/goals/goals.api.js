@@ -17,3 +17,8 @@ export const getTeamGoalsApi = (page = 0, size = 10) =>
 
 export const rejectGoalApi = (id, reason) =>
   httpClient.post(`/api/goals/${id}/reject`, { reason });
+
+export const updateKeyResultProgressApi = (id, currentValue) =>
+  httpClient.patch(`/api/key-results/${id}/progress`, {
+    currentValue
+  });

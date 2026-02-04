@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { goalsStore, fetchTeamGoals } from "../goals.store";
 import GoalsTable from "../components/GoalsTable";
+import { GOAL_STATUS } from "../goals.constants";
 
 const TeamGoalsPage = () => {
   const [state, setState] = useState(goalsStore.getState());
@@ -10,6 +11,11 @@ const TeamGoalsPage = () => {
     fetchTeamGoals();
     return unsub;
   }, []);
+
+  // 🔥 FILTER: show only SUBMITTED goals
+  const pendingGoals = (state.teamGoals || []).filter(
+    (g) => g.status === GOAL_STATUS.SUBMITTED
+  );
 
   return (
     <div className="space-y-6">
@@ -23,7 +29,7 @@ const TeamGoalsPage = () => {
       </div>
 
       {/* --- Goals List --- */}
-      <GoalsTable goals={state.goals} />
+      <GoalsTable goals={pendingGoals} />
     </div>
   );
 };

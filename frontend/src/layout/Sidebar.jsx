@@ -54,7 +54,7 @@ const Sidebar = () => {
             <NavItem to="/users" icon={Icons.Users}>Users</NavItem>
             <NavItem to="/departments" icon={Icons.Dept}>Departments</NavItem>
             <NavItem to="/performance-cycles" icon={Icons.Cycle}>Performance Cycles</NavItem>
-          </>
+            <NavItem to="/review-cycles" icon={Icons.Review}>Review Cycles</NavItem></>
         )}
 
         {(user?.role === "EMPLOYEE" || user?.role === "MANAGER") && (
@@ -68,6 +68,19 @@ const Sidebar = () => {
         {user?.role === "MANAGER" && (
             <NavItem to="/goals/team" icon={Icons.Users}>Team Goals</NavItem>
         )}
+
+        {user?.role === "MANAGER" && (
+          <NavItem to="/ratings/manager">Ratings</NavItem>
+        )}
+
+        {user?.role === "HR" && (
+          <NavItem to="/ratings/hr">Calibration</NavItem>
+        )}
+
+        {user?.role === "LEADERSHIP" && (
+          <NavItem to="/ratings/final">Final Ratings</NavItem>
+        )}
+
       </nav>
 
       {/* Footer / User Badge */}

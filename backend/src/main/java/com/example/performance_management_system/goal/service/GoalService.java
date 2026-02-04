@@ -4,7 +4,9 @@ import com.example.performance_management_system.common.exception.BusinessExcept
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.goal.dto.CreateGoalRequest;
 import com.example.performance_management_system.goal.dto.GoalResponse;
+import com.example.performance_management_system.goal.dto.ManagerDashboardSummary;
 import com.example.performance_management_system.goal.model.Goal;
+import com.example.performance_management_system.goal.model.GoalStatus;
 import com.example.performance_management_system.goal.repository.GoalRepository;
 import com.example.performance_management_system.keyresult.dto.KeyResultResponse;
 import com.example.performance_management_system.keyresult.model.KeyResult;
@@ -96,6 +98,7 @@ public class GoalService {
         );
 
         goal.approve();
+        autoCompleteGoalIfEligible(goal);
         return toGoalResponse(goalRepository.save(goal));
     }
 
@@ -174,4 +177,48 @@ public class GoalService {
         dto.currentValue = kr.getCurrentValue();
         return dto;
     }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    public ManagerDashboardSummary getManagerDashboardSummary() {
+
+        Long managerId = SecurityUtil.userId();
+
+        List<Long> reporteeIds =
+                hierarchyService.getDirectReporteeIds(managerId);
+
+        if (reporteeIds.isEmpty()) {
+            return new ManagerDashboardSummary();
+        }
+
+        PerformanceCycle activeCycle = cycleService.getActiveCycle();
+
+        List<Goal> goals = goalRepository
+                .findByEmployeeIdInAndPerformanceCycle_Id(
+                        reporteeIds,
+                        activeCycle.getId()
+                );
+
+        ManagerDashboardSummary dto = new ManagerDashboardSummary();
+        dto.cycleName = activeCycle.getName();
+        dto.totalGoals = goals.size();
+        dto.pendingApprovals = goals.stream()
+                .filter(g -> g.getStatus() == GoalStatus.SUBMITTED)
+                .count();
+        dto.completedGoals = goals.stream()
+                .filter(g -> g.getStatus() == GoalStatus.COMPLETED)
+                .count();
+
+        return dto;
+    }
+
+    public void autoCompleteGoalIfEligible(Goal goal) {
+        boolean allDone = goal.getKeyResults().stream()
+                .allMatch(kr -> kr.getCurrentValue() >= kr.getTargetValue());
+
+        if (allDone) {
+            goal.setStatus(GoalStatus.COMPLETED);
+        }
+    }
+
+
 }

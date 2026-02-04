@@ -3,6 +3,7 @@ package com.example.performance_management_system.goal.controller;
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.goal.dto.CreateGoalRequest;
 import com.example.performance_management_system.goal.dto.GoalResponse;
+import com.example.performance_management_system.goal.dto.ManagerDashboardSummary;
 import com.example.performance_management_system.goal.dto.RejectGoalRequest;
 import com.example.performance_management_system.goal.model.Goal;
 import com.example.performance_management_system.goal.service.GoalService;
@@ -72,6 +73,13 @@ public class GoalController {
     ) {
         return service.rejectGoal(id, request.reason);
     }
+
+    @GetMapping("/manager/summary")
+    @PreAuthorize("hasRole('MANAGER')")
+    public ManagerDashboardSummary managerSummary() {
+        return service.getManagerDashboardSummary();
+    }
+
 }
 
 
