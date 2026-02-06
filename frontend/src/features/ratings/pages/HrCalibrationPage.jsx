@@ -1,23 +1,31 @@
 import { useEffect, useState } from "react";
-import { ratingsStore, fetchRatings } from "../ratings.store";
-import RatingCard from "../components/RatingCard";
-import { authStore } from "../../../auth/auth.store";
+import {
+  ratingsStore,
+  fetchRatingsForActiveCycle
+} from "../ratings.store";
+import CalibrateRatingForm from "../components/CalibrateRatingForm";
 
-const HrCalibrationPage = () => {
+const HrCalibrationPage = ({ cycleId }) => {
   const [state, setState] = useState(ratingsStore.getState());
-  const role = authStore.getState().user.role;
 
   useEffect(() => {
     const unsub = ratingsStore.subscribe(setState);
-    fetchRatings(); // active cycle assumed
+    fetchRatings(cycleId);
     return unsub;
-  }, []);
+  }, [cycleId]);
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-bold">HR Calibration</h2>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">HR Calibration</h1>
+
       {state.ratings.map(r => (
-        <RatingCard key={r.id} rating={r} role={role} />
+        <div key={r.id} className="bg-white p-4 rounded border">
+          <p>Employee: {r.employeeId}</p>
+          <p>Status: {r.status}</p>
+          <p>Score: {r.score}</p>
+
+          <CalibrateRatingForm rating={r} />
+        </div>
       ))}
     </div>
   );

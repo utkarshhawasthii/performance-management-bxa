@@ -24,4 +24,9 @@ public interface GoalRepository extends JpaRepository<Goal, Long> {
             Pageable pageable
     );
 
+    List<Goal> findByEmployeeIdAndPerformanceCycle_Id(
+            Long employeeId,
+            Long cycleId
+    );
+
 }

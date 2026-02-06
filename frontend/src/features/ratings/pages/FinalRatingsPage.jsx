@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ratingsStore, fetchRatings } from "../ratings.store";
+import { ratingsStore, fetchRatingsForActiveCycle } from "../ratings.store";
 import RatingCard from "../components/RatingCard";
 import { authStore } from "../../../auth/auth.store";
 

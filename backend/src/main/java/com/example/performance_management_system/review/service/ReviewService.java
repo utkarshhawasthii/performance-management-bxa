@@ -2,7 +2,9 @@ package com.example.performance_management_system.review.service;
 
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.config.security.SecurityUtil;
+import com.example.performance_management_system.review.dto.ReviewResponse;
 import com.example.performance_management_system.review.model.Review;
+import com.example.performance_management_system.review.model.ReviewStatus;
 import com.example.performance_management_system.review.repository.ReviewRepository;
 import com.example.performance_management_system.reviewcycle.model.ReviewCycleStatus;
 import com.example.performance_management_system.reviewcycle.repository.ReviewCycleRepository;
@@ -13,18 +15,24 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Optional;
+
 @Service
 public class ReviewService {
 
     private final ReviewRepository repository;
     private final ReviewCycleRepository reviewCycleRepository;
     private final HierarchyService hierarchyService;
+    private final ReviewRepository reviewRepository;
     public ReviewService(ReviewRepository repository,
                          ReviewCycleRepository reviewCycleRepository,
-                         HierarchyService hierarchyService) {
+                         HierarchyService hierarchyService,
+                         ReviewRepository reviewRepository) {
         this.repository = repository;
         this.reviewCycleRepository = reviewCycleRepository;
         this.hierarchyService = hierarchyService;
+        this.reviewRepository = reviewRepository;
     }
 
     @Transactional
@@ -115,6 +123,43 @@ public class ReviewService {
                 PageRequest.of(page, size)
         );
     }
+
+    public Optional<Review> getMyActiveReview(Long employeeId) {
+        return repository.findByEmployeeIdAndReviewCycle_Status(
+                employeeId,
+                ReviewCycleStatus.ACTIVE
+        );
+    }
+
+
+    @Transactional(readOnly = true)
+    public List<ReviewResponse> getTeamReviews(Long managerId) {
+        System.out.println("Before----------------------");
+        List<Review> reviews = reviewRepository.findTeamReviews(
+                managerId,
+                ReviewStatus.SELF_REVIEW_SUBMITTED);
+
+
+        System.out.println("After");
+
+        return reviews.stream().map(review -> {
+            ReviewResponse r = new ReviewResponse();
+            r.id = review.getId();
+            r.employeeId = review.getEmployeeId();
+            r.managerId = review.getManagerId();
+            r.status = review.getStatus().name();
+            r.selfReviewComments = review.getSelfReviewComments();
+            r.managerReviewComments = review.getManagerReviewComments();
+            r.reviewCycleId = review.getReviewCycle().getId(); // SAFE: still inside tx
+            return r;
+        }).toList();
+
+    }
+
+
+
+
+
 
 }
 

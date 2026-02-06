@@ -15,6 +15,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 public class RatingService {
 
@@ -42,6 +44,7 @@ public class RatingService {
 
         Rating rating = new Rating();
         rating.setEmployeeId(req.employeeId);
+        rating.setManagerId(SecurityUtil.userId());
         rating.setPerformanceCycle(cycle);
         rating.setScore(req.score);
         rating.setManagerJustification(req.managerJustification);
@@ -114,6 +117,46 @@ public class RatingService {
                 PageRequest.of(page, size)
         );
     }
+
+    @PreAuthorize("hasRole('MANAGER')")
+    public List<Rating> getTeamRatings(Long managerId) {
+
+        var cycle = cycleService.getActiveCycle();
+
+        return repository.findByManagerIdAndPerformanceCycle(
+                managerId,
+                cycle
+        );
+    }
+
+    @PreAuthorize("hasRole('HR')")
+    public List<Rating> getRatingsPendingCalibration() {
+
+        var cycle = cycleService.getActiveCycle();
+
+        return repository.findByStatusAndPerformanceCycle(
+                RatingStatus.MANAGER_SUBMITTED,
+                cycle
+        );
+    }
+
+    @PreAuthorize("hasRole('LEADERSHIP')")
+    public List<Rating> getRatingsForFinalization() {
+
+        var cycle = cycleService.getActiveCycle();
+
+        return repository.findByStatusAndPerformanceCycle(
+                RatingStatus.HR_CALIBRATED,
+                cycle
+        );
+    }
+
+    public List<Rating> getRatingsForActiveCycle() {
+        var cycle = cycleService.getActiveCycle();
+        return repository.findByPerformanceCycle(cycle);
+    }
+
+
 
 }
 

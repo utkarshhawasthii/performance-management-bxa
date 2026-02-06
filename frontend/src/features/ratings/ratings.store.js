@@ -1,3 +1,6 @@
+import httpClient from "../../services/httpClient";
+
+
 import {
   createRatingApi,
   submitRatingApi,
@@ -8,7 +11,8 @@ import {
 
 const initialState = {
   ratings: [],
-  loading: false
+  loading: false,
+  error: null
 };
 
 let state = { ...initialState };
@@ -29,10 +33,23 @@ function setState(newState) {
   listeners.forEach(l => l(state));
 }
 
-export async function fetchRatings(cycleId) {
-  const res = await getRatingsForCycleApi(cycleId);
-  setState({ ratings: res.data.content });
+/* ================= FETCH ================= */
+
+export async function fetchRatingsForActiveCycle() {
+  const cycleRes = await httpClient.get(
+    "/api/performance-cycles/active-cycle"
+  );
+
+  if (!cycleRes.data) return;
+
+  const cycleId = cycleRes.data.id;
+
+  const ratingsRes = await getRatingsForCycleApi(cycleId);
+  setState({ ratings: ratingsRes.data.content });
 }
+
+
+/* ================= ACTIONS ================= */
 
 export async function createRating(payload) {
   await createRatingApi(payload);

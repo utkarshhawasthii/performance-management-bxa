@@ -32,6 +32,7 @@ public class ReviewCycle {
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private ReviewCycleStatus status;
 
     private LocalDateTime createdAt;

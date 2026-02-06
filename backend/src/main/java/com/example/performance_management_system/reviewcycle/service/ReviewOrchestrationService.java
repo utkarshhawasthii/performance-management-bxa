@@ -1,96 +1,61 @@
 package com.example.performance_management_system.reviewcycle.service;
 
 import com.example.performance_management_system.common.enums.Role;
-import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.goal.model.Goal;
 import com.example.performance_management_system.goal.repository.GoalRepository;
 import com.example.performance_management_system.keyresult.model.KeyResult;
-import com.example.performance_management_system.performancecycle.service.PerformanceCycleService;
 import com.example.performance_management_system.rating.model.Rating;
 import com.example.performance_management_system.rating.model.RatingStatus;
 import com.example.performance_management_system.rating.repository.RatingRepository;
 import com.example.performance_management_system.review.model.Review;
 import com.example.performance_management_system.review.repository.ReviewRepository;
+import com.example.performance_management_system.review.service.ReviewService;
 import com.example.performance_management_system.reviewcycle.model.ReviewCycle;
-import com.example.performance_management_system.reviewcycle.repository.ReviewCycleRepository;
 import com.example.performance_management_system.user.model.User;
 import com.example.performance_management_system.user.repository.UserRepository;
-import org.springframework.security.access.prepost.PreAuthorize;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
-public class ReviewCycleService {
+public class ReviewOrchestrationService {
 
-    private final ReviewCycleRepository repository;
-    private final PerformanceCycleService performanceCycleService;
     private final UserRepository userRepository;
-    private final ReviewRepository reviewRepository;
     private final RatingRepository ratingRepository;
+    private final ReviewRepository reviewRepository;
     private final GoalRepository goalRepository;
 
-    public ReviewCycleService(ReviewCycleRepository repository,
-                              PerformanceCycleService performanceCycleService,
-                              UserRepository userRepository,
-                              ReviewRepository reviewRepository,
-                              RatingRepository ratingRepository,
-                              GoalRepository goalRepository) {
-        this.repository = repository;
-        this.ratingRepository = ratingRepository;
-        this.performanceCycleService = performanceCycleService;
-        this.reviewRepository = reviewRepository;
+    public ReviewOrchestrationService(
+            UserRepository userRepository,
+            RatingRepository ratingRepository,
+            ReviewRepository reviewRepository,
+            GoalRepository goalRepository
+    ) {
         this.userRepository = userRepository;
+        this.ratingRepository = ratingRepository;
+        this.reviewRepository = reviewRepository;
         this.goalRepository = goalRepository;
     }
-
     @Transactional
-    public ReviewCycle create(ReviewCycle cycle) {
-        cycle.setPerformanceCycle(performanceCycleService.getActiveCycle());
-        return repository.save(cycle);
-    }
+    public void createReviewsForCycle(ReviewCycle cycle) {
 
-
-    @Transactional
-    public ReviewCycle activate(Long reviewCycleId) {
-
-        ReviewCycle cycle = repository.findById(reviewCycleId)
-                .orElseThrow(() -> new BusinessException("Review cycle not found"));
-
-        cycle.activate();
-
-        // 🔥 NEW STEP: create reviews
-        createReviewsForCycle(cycle);
-        generateRatingsForCycle(cycle);
-
-
-        return repository.save(cycle);
-    }
-
-
-    @Transactional
-    public ReviewCycle close(Long reviewCycleId) {
-
-        ReviewCycle cycle = repository.findById(reviewCycleId)
-                .orElseThrow(() -> new BusinessException("Review cycle not found"));
-
-        cycle.close(); // domain rule
-        return repository.save(cycle);
-    }
-
-    public List<ReviewCycle> getAll() {
-        return repository.findAll();
-    }
-
-    private void createReviewsForCycle(ReviewCycle cycle) {
-
-        List<User> employees = userRepository.findAllActiveEmployees();
+        List<User> employees = userRepository.findByRole(Role.EMPLOYEE);
 
         for (User employee : employees) {
 
-            if (reviewRepository.existsByEmployeeIdAndReviewCycle(
-                    employee.getId(), cycle)) {
+            // 🔥 SKIP employees without manager
+            if (employee.getManagerId() == null) {
+                continue;
+            }
+
+            boolean exists =
+                    reviewRepository.existsByEmployeeIdAndReviewCycle(
+                            employee.getId(),
+                            cycle
+                    );
+
+            if (exists) {
                 continue;
             }
 
@@ -103,10 +68,10 @@ public class ReviewCycleService {
         }
     }
 
-    @jakarta.transaction.Transactional
+    @Transactional
     public void generateRatingsForCycle(ReviewCycle cycle) {
 
-        List<User> employees = userRepository.findAllActiveEmployees();
+        List<User> employees = userRepository.findByRole(Role.EMPLOYEE);
 
         for (User employee : employees) {
 
@@ -117,7 +82,7 @@ public class ReviewCycleService {
                     );
 
             if (alreadyExists) {
-                continue; // do not duplicate
+                continue; // 🔥 do not duplicate
             }
 
             double score = calculateInitialScore(employee.getId(), cycle);
@@ -161,6 +126,8 @@ public class ReviewCycleService {
         if (avg >= 60) return 3;
         return 2;
     }
+
+
 
 }
 

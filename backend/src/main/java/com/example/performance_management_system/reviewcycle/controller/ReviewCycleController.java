@@ -34,14 +34,14 @@ public class ReviewCycleController {
         return service.create(cycle);
     }
 
-    // 🔹 ACTIVATE
     @PostMapping("/{id}/activate")
+    @PreAuthorize("hasRole('HR') or hasRole('ADMIN')")
     public ReviewCycle activate(@PathVariable Long id) {
         return service.activate(id);
     }
 
-    // 🔹 CLOSE
     @PostMapping("/{id}/close")
+    @PreAuthorize("hasRole('HR') or hasRole('ADMIN')")
     public ReviewCycle close(@PathVariable Long id) {
         return service.close(id);
     }

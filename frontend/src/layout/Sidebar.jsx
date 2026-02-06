@@ -57,12 +57,32 @@ const Sidebar = () => {
            <>
              <p className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mt-6 mb-2">Performance</p>
              <NavItem to="/goals" icon={Icons.Goal} end={true}>My Goals</NavItem>
+             <NavItem to="/reviews/my">My Review</NavItem>
            </>
         )}
 
         {user?.role === "MANAGER" && (
+            <>
             <NavItem to="/goals/team" icon={Icons.Users}>Team Goals</NavItem>
+            <NavItem to="/reviews/team">Team Reviews</NavItem>
+            </>
         )}
+
+        {(user.role === "HR" || user.role === "LEADERSHIP") && (
+          <NavItem to="/ratings/finalize" icon={Icons.Goal}>
+            Finalize Ratings
+          </NavItem>
+        )}
+
+    {user?.role === "MANAGER" && (
+      <>
+        <NavItem to="/ratings/team" icon={Icons.Star}>
+          Ratings
+        </NavItem>
+      </>
+    )}
+
+
       </nav>
 
       <div className="p-4 border-t border-slate-800 bg-slate-900">

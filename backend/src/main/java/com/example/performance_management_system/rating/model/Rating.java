@@ -38,6 +38,9 @@ public class Rating {
     @Enumerated(EnumType.STRING)
     private RatingStatus status;
 
+    @Column(nullable = false)
+    private Long managerId;
+
     private String managerJustification;
     private String hrJustification;
 

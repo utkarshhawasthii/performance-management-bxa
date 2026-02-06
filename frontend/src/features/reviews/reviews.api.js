@@ -1,10 +1,16 @@
+// review.api.js
 import httpClient from "../../services/httpClient";
 
-export const submitSelfReviewApi = (id, payload) =>
-  httpClient.post(`/api/reviews/${id}/self`, payload);
+export const getMyReviewApi = () =>
+  httpClient.get("/api/reviews/my");
 
-export const submitManagerReviewApi = (id, payload) =>
-  httpClient.post(`/api/reviews/${id}/manager`, payload);
+export const submitSelfReviewApi = (id, comments) =>
+  httpClient.post(`/api/reviews/${id}/self`, { comments });
 
-export const getManagerReviewsApi = (page = 0, size = 10) =>
-  httpClient.get(`/api/reviews/manager?page=${page}&size=${size}`);
+
+export const getTeamReviewsApi = () =>
+  httpClient.get("/api/reviews/team");
+
+export const submitManagerReviewApi = (id, comments) =>
+  httpClient.post(`/api/reviews/${id}/manager`, { comments });
+
