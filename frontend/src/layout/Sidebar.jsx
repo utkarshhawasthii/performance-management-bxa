@@ -25,6 +25,7 @@ const Icons = {
   Cycle: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
   Goal: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
   Review: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>,
+  Star: <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l2.01 6.186a1 1 0 00.95.69h6.505c.969 0 1.371 1.24.588 1.81l-5.263 3.823a1 1 0 00-.364 1.118l2.01 6.186c.3.922-.755 1.688-1.539 1.118l-5.262-3.822a1 1 0 00-1.176 0L6.148 22.93c-.783.57-1.838-.196-1.539-1.118l2.01-6.186a1 1 0 00-.364-1.118L.992 11.613c-.783-.57-.38-1.81.588-1.81h6.505a1 1 0 00.95-.69l2.014-6.186z" /></svg>,
 };
 
 const Sidebar = () => {
@@ -68,7 +69,7 @@ const Sidebar = () => {
             </>
         )}
 
-        {(user.role === "HR" || user.role === "LEADERSHIP") && (
+        {(user?.role === "HR" || user?.role === "LEADERSHIP") && (
           <NavItem to="/ratings/finalize" icon={Icons.Goal}>
             Finalize Ratings
           </NavItem>

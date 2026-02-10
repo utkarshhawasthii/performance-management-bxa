@@ -9,4 +9,11 @@ import java.util.Optional;
 public interface ReviewCycleRepository extends JpaRepository<ReviewCycle, Long> {
 
     Optional<ReviewCycle> findByStatus(ReviewCycleStatus status);
+
+    boolean existsByStatus(ReviewCycleStatus status);
+
+    boolean existsByStatusAndPerformanceCycle_Id(
+            ReviewCycleStatus status,
+            Long performanceCycleId
+    );
 }

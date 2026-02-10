@@ -12,4 +12,6 @@ public interface PerformanceCycleRepository
     Optional<PerformanceCycle> findByStatus(CycleStatus status);
 
     boolean existsByStatusAndCycleType(CycleStatus status, String cycleType);
+
+    boolean existsByStatus(CycleStatus status);
 }

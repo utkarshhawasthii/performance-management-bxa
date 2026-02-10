@@ -1,4 +1,9 @@
-import { getDepartmentsApi, createDepartmentApi } from "./departments.api";
+import {
+  getDepartmentsApi,
+  createDepartmentApi,
+  updateDepartmentApi,
+  deleteDepartmentApi
+} from "./departments.api";
 
 const initialState = {
   departments: [],
@@ -28,11 +33,11 @@ function setState(newState) {
 
 export async function fetchDepartments() {
   try {
-    setState({ loading: true });
+    setState({ loading: true, error: null });
 
     const res = await getDepartmentsApi();
     setState({
-      departments: res.data || [],
+      departments: (res.data || []).filter((d) => d.active !== false),
       loading: false
     });
   } catch {
@@ -42,5 +47,15 @@ export async function fetchDepartments() {
 
 export async function createDepartment(payload) {
   await createDepartmentApi(payload);
-  fetchDepartments();
+  await fetchDepartments();
+}
+
+export async function updateDepartment(id, payload) {
+  await updateDepartmentApi(id, payload);
+  await fetchDepartments();
+}
+
+export async function deleteDepartment(id) {
+  await deleteDepartmentApi(id);
+  await fetchDepartments();
 }

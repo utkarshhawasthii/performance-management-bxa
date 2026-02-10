@@ -1,19 +1,43 @@
-import { useState } from "react";
-import { createDepartment } from "../departments.store";
+import { useEffect, useState } from "react";
+import { createDepartment, updateDepartment } from "../departments.store";
 
-const DepartmentForm = () => {
+const DepartmentForm = ({ initialData, onDone }) => {
   const [form, setForm] = useState({
     type: "",
-    displayName: ""
+    displayName: "",
+    headId: ""
   });
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setForm({
+        type: initialData.type || "",
+        displayName: initialData.displayName || "",
+        headId: initialData.headId ?? ""
+      });
+    }
+  }, [initialData]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await createDepartment(form);
+
+    const payload = {
+      type: form.type,
+      displayName: form.displayName,
+      headId: form.headId === "" ? null : Number(form.headId)
+    };
+
+    if (initialData?.id) {
+      await updateDepartment(initialData.id, payload);
+    } else {
+      await createDepartment(payload);
+      setForm({ type: "", displayName: "", headId: "" });
+    }
+
     setLoading(false);
-    setForm({ type: "", displayName: "" });
+    if (onDone) onDone();
   };
 
   const inputClass = "w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition shadow-sm";
@@ -21,13 +45,13 @@ const DepartmentForm = () => {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col md:flex-row items-end gap-4">
 
-      {/* Department Type */}
       <div className="w-full md:w-1/3">
         <label className="block text-xs font-medium text-slate-700 mb-1">Department Type</label>
         <select
           value={form.type}
           onChange={(e) => setForm({ ...form, type: e.target.value })}
           required
+          disabled={Boolean(initialData?.id)}
           className={inputClass}
         >
           <option value="">Select Type...</option>
@@ -39,8 +63,7 @@ const DepartmentForm = () => {
         </select>
       </div>
 
-      {/* Display Name */}
-      <div className="w-full md:w-1/2">
+      <div className="w-full md:w-1/3">
         <label className="block text-xs font-medium text-slate-700 mb-1">Display Name</label>
         <input
           placeholder="e.g. Financial Operations"
@@ -51,14 +74,25 @@ const DepartmentForm = () => {
         />
       </div>
 
-      {/* Submit Button */}
+      <div className="w-full md:w-1/4">
+        <label className="block text-xs font-medium text-slate-700 mb-1">Head ID (optional)</label>
+        <input
+          type="number"
+          min="1"
+          placeholder="e.g. 12"
+          value={form.headId}
+          onChange={(e) => setForm({ ...form, headId: e.target.value })}
+          className={inputClass}
+        />
+      </div>
+
       <div className="w-full md:w-auto">
         <button
           type="submit"
           disabled={loading}
-          className="w-full md:w-auto px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
+          className="w-full md:w-auto px-5 py-2.5 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition shadow-sm disabled:opacity-70 flex items-center justify-center gap-2"
         >
-          {loading ? "Creating..." : "Create"}
+          {loading ? "Saving..." : initialData?.id ? "Update" : "Create"}
         </button>
       </div>
     </form>

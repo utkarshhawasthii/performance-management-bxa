@@ -5,6 +5,8 @@ import com.example.performance_management_system.common.exception.BusinessExcept
 import com.example.performance_management_system.performancecycle.model.CycleStatus;
 import com.example.performance_management_system.performancecycle.model.PerformanceCycle;
 import com.example.performance_management_system.performancecycle.repository.PerformanceCycleRepository;
+import com.example.performance_management_system.reviewcycle.model.ReviewCycleStatus;
+import com.example.performance_management_system.reviewcycle.repository.ReviewCycleRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,9 +17,14 @@ import java.util.List;
 public class PerformanceCycleService {
 
     private final PerformanceCycleRepository repository;
+    private final ReviewCycleRepository reviewCycleRepository;
 
-    public PerformanceCycleService(PerformanceCycleRepository repository) {
+    public PerformanceCycleService(
+            PerformanceCycleRepository repository,
+            ReviewCycleRepository reviewCycleRepository
+    ) {
         this.repository = repository;
+        this.reviewCycleRepository = reviewCycleRepository;
     }
 
     @Transactional
@@ -67,6 +74,17 @@ public class PerformanceCycleService {
                         ErrorCode.SYSTEM_ERROR,
                         "Performance cycle not found"
                 ));
+
+        if (reviewCycleRepository.existsByStatusAndPerformanceCycle_Id(
+                ReviewCycleStatus.ACTIVE,
+                cycleId
+        )) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.VALIDATION_FAILED,
+                    "Cannot close performance cycle while a review cycle is active"
+            );
+        }
 
         cycle.close();
         return repository.save(cycle);

@@ -5,7 +5,9 @@ import com.example.performance_management_system.common.exception.BusinessExcept
 import com.example.performance_management_system.goal.model.Goal;
 import com.example.performance_management_system.goal.repository.GoalRepository;
 import com.example.performance_management_system.keyresult.model.KeyResult;
+import com.example.performance_management_system.performancecycle.model.CycleStatus;
 import com.example.performance_management_system.performancecycle.service.PerformanceCycleService;
+import com.example.performance_management_system.performancecycle.repository.PerformanceCycleRepository;
 import com.example.performance_management_system.rating.model.Rating;
 import com.example.performance_management_system.rating.model.RatingStatus;
 import com.example.performance_management_system.rating.repository.RatingRepository;
@@ -26,6 +28,7 @@ public class ReviewCycleService {
 
     private final ReviewCycleRepository repository;
     private final PerformanceCycleService performanceCycleService;
+    private final PerformanceCycleRepository performanceCycleRepository;
     private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
     private final RatingRepository ratingRepository;
@@ -34,6 +37,7 @@ public class ReviewCycleService {
     public ReviewCycleService(
             ReviewCycleRepository repository,
             PerformanceCycleService performanceCycleService,
+            PerformanceCycleRepository performanceCycleRepository,
             UserRepository userRepository,
             ReviewRepository reviewRepository,
             RatingRepository ratingRepository,
@@ -41,6 +45,7 @@ public class ReviewCycleService {
     ) {
         this.repository = repository;
         this.performanceCycleService = performanceCycleService;
+        this.performanceCycleRepository = performanceCycleRepository;
         this.userRepository = userRepository;
         this.reviewRepository = reviewRepository;
         this.ratingRepository = ratingRepository;
@@ -51,6 +56,15 @@ public class ReviewCycleService {
 
     @Transactional
     public ReviewCycle create(ReviewCycle cycle) {
+
+        if (!performanceCycleRepository.existsByStatus(CycleStatus.ACTIVE)
+                && performanceCycleRepository.existsByStatus(CycleStatus.DRAFT)) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.VALIDATION_FAILED,
+                    "Cannot create review cycle while performance cycle is in DRAFT stage"
+            );
+        }
 
         cycle.setPerformanceCycle(performanceCycleService.getActiveCycle());
         return repository.save(cycle);

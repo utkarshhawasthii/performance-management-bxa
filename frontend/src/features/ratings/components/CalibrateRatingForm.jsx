@@ -1,21 +1,29 @@
 import { useState } from "react";
 import { calibrateRating } from "../ratings.store";
 
-const CalibrateRatingForm = ({ rating }) => {
+const CalibrateRatingForm = ({ rating, onDone }) => {
   if (rating.status !== "MANAGER_SUBMITTED") return null;
 
   const [newScore, setNewScore] = useState(rating.score);
   const [justification, setJustification] = useState("");
 
+  const onCalibrate = async () => {
+    await calibrateRating(rating.id, {
+      newScore,
+      justification
+    });
+
+    if (onDone) onDone();
+  };
+
   return (
     <div className="space-y-2 mt-3 border-t pt-3">
-
       <select
         className="border p-2 w-full"
         value={newScore}
         onChange={(e) => setNewScore(Number(e.target.value))}
       >
-        {[1, 2, 3, 4, 5].map(v => (
+        {[1, 2, 3, 4, 5].map((v) => (
           <option key={v} value={v}>{v}</option>
         ))}
       </select>
@@ -30,12 +38,7 @@ const CalibrateRatingForm = ({ rating }) => {
 
       <button
         disabled={!justification}
-        onClick={() =>
-          calibrateRating(rating.id, {
-            newScore,
-            justification
-          })
-        }
+        onClick={onCalibrate}
         className="px-3 py-1 bg-purple-600 text-white rounded disabled:opacity-50"
       >
         Calibrate

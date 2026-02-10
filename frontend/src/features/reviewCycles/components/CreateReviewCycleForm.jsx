@@ -10,20 +10,30 @@ const CreateReviewCycleForm = ({ onSuccess }) => {
     endDate: ""
   });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const submit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await createReviewCycleApi(form);
-    setLoading(false);
-    setForm({
-      name: "",
-      selfReviewEnabled: true,
-      managerReviewEnabled: true,
-      startDate: "",
-      endDate: ""
-    });
-    if (onSuccess) onSuccess();
+    setError("");
+
+    try {
+      await createReviewCycleApi(form);
+      setForm({
+        name: "",
+        selfReviewEnabled: true,
+        managerReviewEnabled: true,
+        startDate: "",
+        endDate: ""
+      });
+      if (onSuccess) onSuccess();
+    } catch (err) {
+      const message = err?.response?.data?.message || "Unable to create review cycle";
+      setError(message);
+      alert(message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const labelClass = "block text-xs font-medium text-slate-700 mb-1";
@@ -31,6 +41,11 @@ const CreateReviewCycleForm = ({ onSuccess }) => {
 
   return (
     <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {error ? (
+        <div className="md:col-span-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+          {error}
+        </div>
+      ) : null}
 
       {/* Name Input - Full Width */}
       <div className="md:col-span-2">

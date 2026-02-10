@@ -112,12 +112,6 @@ const Login = () => {
               </p>
 
               <div className="text-sm space-y-2">
-                <p className="text-gray-600">
-                  Don't have an account?{" "}
-                  <a href="/signup" className="font-medium text-gray-900 hover:underline">
-                    Sign up &gt;
-                  </a>
-                </p>
                 <p>
                   <a href="/recover" className="text-gray-600 hover:text-gray-900 hover:underline">
                     Forgot your password? Recover &gt;

@@ -76,7 +76,10 @@ const TeamRatingsPage = () => {
               />
 
               <button
-                onClick={() => submitRating(r.id)}
+                onClick={async () => {
+                  await submitRating(r.id);
+                  await fetchRatingsForActiveCycle();
+                }}
                 className="px-3 py-1 bg-blue-600 text-white rounded"
               >
                 Submit Rating
