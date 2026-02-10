@@ -1,0 +1,34 @@
+package com.example.performance_management_system.common.error;
+
+public enum ErrorCode {
+
+    // AUTH
+    AUTH_UNAUTHORIZED,
+    ACCESS_DENIED,
+
+    // VALIDATION
+    VALIDATION_FAILED,
+
+    // USER
+    USER_NOT_FOUND,
+    USER_ALREADY_EXISTS,
+
+    // GOAL
+    GOAL_NOT_FOUND,
+    GOAL_INVALID_STATE,
+
+    // REVIEW
+    REVIEW_NOT_FOUND,
+    REVIEW_ALREADY_SUBMITTED,
+
+    // RATING
+    RATING_ALREADY_EXISTS,
+    RATING_INVALID_STATE,
+
+    // CYCLE
+    CYCLE_ALREADY_ACTIVE,
+
+    // SYSTEM
+    DATA_INTEGRITY_VIOLATION,
+    SYSTEM_ERROR
+}

@@ -1,9 +1,11 @@
 package com.example.performance_management_system.user.service;
 
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.user.model.User;
-import org.springframework.stereotype.Service;
 import com.example.performance_management_system.user.repository.UserRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
@@ -13,8 +15,10 @@ public class HierarchyService {
     private final UserService userService;
     private final UserRepository userRepository;
 
-    public HierarchyService(UserRepository userRepository,
-                            UserService userService) {
+    public HierarchyService(
+            UserRepository userRepository,
+            UserService userService
+    ) {
         this.userService = userService;
         this.userRepository = userRepository;
     }
@@ -38,11 +42,20 @@ public class HierarchyService {
      * Throws exception if manager is not allowed to act on employee
      */
     public void validateManagerAccess(Long managerId, Long employeeId) {
+
         User employee = userRepository.findById(employeeId)
-                .orElseThrow(() -> new BusinessException("Employee not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.USER_NOT_FOUND,
+                        "Employee not found"
+                ));
 
         if (!managerId.equals(employee.getManagerId())) {
-            throw new BusinessException("You are not the manager of this employee");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    ErrorCode.ACCESS_DENIED,
+                    "You are not the manager of this employee"
+            );
         }
     }
 
@@ -54,14 +67,22 @@ public class HierarchyService {
     }
 
     public Long getManagerId(Long employeeId) {
+
         User employee = userRepository.findById(employeeId)
-                .orElseThrow(() -> new BusinessException("Employee not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.USER_NOT_FOUND,
+                        "Employee not found"
+                ));
 
         if (employee.getManagerId() == null) {
-            throw new BusinessException("Employee has no assigned manager");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.USER_NOT_FOUND, // see note below
+                    "Employee has no assigned manager"
+            );
         }
 
         return employee.getManagerId();
     }
-
 }

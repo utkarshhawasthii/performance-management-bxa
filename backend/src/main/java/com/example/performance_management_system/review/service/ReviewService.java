@@ -1,5 +1,6 @@
 package com.example.performance_management_system.review.service;
 
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.review.dto.ReviewResponse;
@@ -11,6 +12,7 @@ import com.example.performance_management_system.reviewcycle.repository.ReviewCy
 import com.example.performance_management_system.user.service.HierarchyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,10 +27,13 @@ public class ReviewService {
     private final ReviewCycleRepository reviewCycleRepository;
     private final HierarchyService hierarchyService;
     private final ReviewRepository reviewRepository;
-    public ReviewService(ReviewRepository repository,
-                         ReviewCycleRepository reviewCycleRepository,
-                         HierarchyService hierarchyService,
-                         ReviewRepository reviewRepository) {
+
+    public ReviewService(
+            ReviewRepository repository,
+            ReviewCycleRepository reviewCycleRepository,
+            HierarchyService hierarchyService,
+            ReviewRepository reviewRepository
+    ) {
         this.repository = repository;
         this.reviewCycleRepository = reviewCycleRepository;
         this.hierarchyService = hierarchyService;
@@ -43,7 +48,11 @@ public class ReviewService {
         review.setManagerId(managerId);
         review.setReviewCycle(
                 reviewCycleRepository.findById(reviewCycleId)
-                        .orElseThrow(() -> new BusinessException("Review cycle not found"))
+                        .orElseThrow(() -> new BusinessException(
+                                HttpStatus.NOT_FOUND,
+                                ErrorCode.SYSTEM_ERROR, // see note below
+                                "Review cycle not found"
+                        ))
         );
 
         return repository.save(review);
@@ -56,24 +65,34 @@ public class ReviewService {
         Review review = get(reviewId);
 
         if (!review.getEmployeeId().equals(SecurityUtil.userId())) {
-            throw new BusinessException("You can submit self-review only for yourself");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    ErrorCode.ACCESS_DENIED,
+                    "You can submit self-review only for yourself"
+            );
         }
 
-        if(review.getReviewCycle().getStatus()!= ReviewCycleStatus.ACTIVE){
-            throw new BusinessException("Review Cycle is not Active");
+        if (review.getReviewCycle().getStatus() != ReviewCycleStatus.ACTIVE) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.GOAL_INVALID_STATE,
+                    "Review cycle is not active"
+            );
         }
 
         if (!review.getReviewCycle().getSelfReviewEnabled()) {
-            throw new BusinessException("Self review is disabled for this cycle");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.GOAL_INVALID_STATE,
+                    "Self review is disabled for this cycle"
+            );
         }
 
         review.submitSelfReview();
         review.setSelfReviewComments(comments);
 
-
         return repository.save(review);
     }
-
 
     @PreAuthorize("hasRole('MANAGER')")
     @Transactional
@@ -82,9 +101,12 @@ public class ReviewService {
         Review review = get(reviewId);
 
         if (!review.getReviewCycle().getManagerReviewEnabled()) {
-            throw new BusinessException("Manager review is disabled for this cycle");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.GOAL_INVALID_STATE,
+                    "Manager review is disabled for this cycle"
+            );
         }
-
 
         Long managerId = SecurityUtil.userId();
         String role = SecurityUtil.role();
@@ -96,21 +118,27 @@ public class ReviewService {
             );
         }
 
-        if(review.getReviewCycle().getStatus()!= ReviewCycleStatus.ACTIVE){
-            throw new BusinessException("Review cycle is not Active");
+        if (review.getReviewCycle().getStatus() != ReviewCycleStatus.ACTIVE) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.GOAL_INVALID_STATE,
+                    "Review cycle is not active"
+            );
         }
 
         review.submitManagerReview();
         review.setManagerReviewComments(comments);
 
-
         return repository.save(review);
     }
 
-
     private Review get(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new BusinessException("Review not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.REVIEW_NOT_FOUND,
+                        "Review not found"
+                ));
     }
 
     public Page<Review> getReviewsForManager(
@@ -131,16 +159,13 @@ public class ReviewService {
         );
     }
 
-
     @Transactional(readOnly = true)
     public List<ReviewResponse> getTeamReviews(Long managerId) {
-        System.out.println("Before----------------------");
+
         List<Review> reviews = reviewRepository.findTeamReviews(
                 managerId,
-                ReviewStatus.SELF_REVIEW_SUBMITTED);
-
-
-        System.out.println("After");
+                ReviewStatus.SELF_REVIEW_SUBMITTED
+        );
 
         return reviews.stream().map(review -> {
             ReviewResponse r = new ReviewResponse();
@@ -150,16 +175,8 @@ public class ReviewService {
             r.status = review.getStatus().name();
             r.selfReviewComments = review.getSelfReviewComments();
             r.managerReviewComments = review.getManagerReviewComments();
-            r.reviewCycleId = review.getReviewCycle().getId(); // SAFE: still inside tx
+            r.reviewCycleId = review.getReviewCycle().getId();
             return r;
         }).toList();
-
     }
-
-
-
-
-
-
 }
-

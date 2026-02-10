@@ -1,7 +1,25 @@
 package com.example.performance_management_system.common.exception;
 
+import com.example.performance_management_system.common.error.ErrorCode;
+import org.springframework.http.HttpStatus;
+
 public class BusinessException extends RuntimeException {
-    public BusinessException(String message) {
+
+    private final HttpStatus status;
+    private final ErrorCode errorCode;
+
+    public BusinessException(HttpStatus status, ErrorCode errorCode, String message) {
         super(message);
+        this.status = status;
+        this.errorCode = errorCode;
+    }
+
+    public HttpStatus getStatus() {
+        return status;
+    }
+
+    public ErrorCode getErrorCode() {
+        return errorCode;
     }
 }
+

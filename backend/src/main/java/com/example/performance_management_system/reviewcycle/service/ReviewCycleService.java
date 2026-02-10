@@ -1,6 +1,6 @@
 package com.example.performance_management_system.reviewcycle.service;
 
-import com.example.performance_management_system.common.enums.Role;
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.goal.model.Goal;
 import com.example.performance_management_system.goal.repository.GoalRepository;
@@ -15,7 +15,7 @@ import com.example.performance_management_system.reviewcycle.model.ReviewCycle;
 import com.example.performance_management_system.reviewcycle.repository.ReviewCycleRepository;
 import com.example.performance_management_system.user.model.User;
 import com.example.performance_management_system.user.repository.UserRepository;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,57 +31,84 @@ public class ReviewCycleService {
     private final RatingRepository ratingRepository;
     private final GoalRepository goalRepository;
 
-    public ReviewCycleService(ReviewCycleRepository repository,
-                              PerformanceCycleService performanceCycleService,
-                              UserRepository userRepository,
-                              ReviewRepository reviewRepository,
-                              RatingRepository ratingRepository,
-                              GoalRepository goalRepository) {
+    public ReviewCycleService(
+            ReviewCycleRepository repository,
+            PerformanceCycleService performanceCycleService,
+            UserRepository userRepository,
+            ReviewRepository reviewRepository,
+            RatingRepository ratingRepository,
+            GoalRepository goalRepository
+    ) {
         this.repository = repository;
-        this.ratingRepository = ratingRepository;
         this.performanceCycleService = performanceCycleService;
-        this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.reviewRepository = reviewRepository;
+        this.ratingRepository = ratingRepository;
         this.goalRepository = goalRepository;
     }
 
+    /* ================= CREATE ================= */
+
     @Transactional
     public ReviewCycle create(ReviewCycle cycle) {
+
         cycle.setPerformanceCycle(performanceCycleService.getActiveCycle());
         return repository.save(cycle);
     }
 
+    /* ================= ACTIVATE ================= */
 
     @Transactional
     public ReviewCycle activate(Long reviewCycleId) {
 
         ReviewCycle cycle = repository.findById(reviewCycleId)
-                .orElseThrow(() -> new BusinessException("Review cycle not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.SYSTEM_ERROR, // can be REVIEW_CYCLE_NOT_FOUND later
+                        "Review cycle not found"
+                ));
 
         cycle.activate();
 
-        // 🔥 NEW STEP: create reviews
-        createReviewsForCycle(cycle);
-        generateRatingsForCycle(cycle);
-
+        // 🔥 orchestration (must be all-or-nothing)
+        try {
+            createReviewsForCycle(cycle);
+            generateRatingsForCycle(cycle);
+        } catch (Exception ex) {
+            // ensures rollback + visibility
+            throw new BusinessException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    ErrorCode.SYSTEM_ERROR,
+                    "Failed to activate review cycle"
+            );
+        }
 
         return repository.save(cycle);
     }
 
+    /* ================= CLOSE ================= */
 
     @Transactional
     public ReviewCycle close(Long reviewCycleId) {
 
         ReviewCycle cycle = repository.findById(reviewCycleId)
-                .orElseThrow(() -> new BusinessException("Review cycle not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.SYSTEM_ERROR,
+                        "Review cycle not found"
+                ));
 
-        cycle.close(); // domain rule
+        cycle.close();
         return repository.save(cycle);
     }
+
+    /* ================= READ ================= */
 
     public List<ReviewCycle> getAll() {
         return repository.findAll();
     }
+
+    /* ================= INTERNAL ================= */
 
     private void createReviewsForCycle(ReviewCycle cycle) {
 
@@ -103,7 +130,7 @@ public class ReviewCycleService {
         }
     }
 
-    @jakarta.transaction.Transactional
+    @Transactional
     public void generateRatingsForCycle(ReviewCycle cycle) {
 
         List<User> employees = userRepository.findAllActiveEmployees();
@@ -117,7 +144,7 @@ public class ReviewCycleService {
                     );
 
             if (alreadyExists) {
-                continue; // do not duplicate
+                continue;
             }
 
             double score = calculateInitialScore(employee.getId(), cycle);
@@ -142,7 +169,9 @@ public class ReviewCycleService {
                         cycle.getPerformanceCycle().getId()
                 );
 
-        if (goals.isEmpty()) return 2;
+        if (goals.isEmpty()) {
+            return 2;
+        }
 
         double totalProgress = 0;
 
@@ -161,6 +190,4 @@ public class ReviewCycleService {
         if (avg >= 60) return 3;
         return 2;
     }
-
 }
-

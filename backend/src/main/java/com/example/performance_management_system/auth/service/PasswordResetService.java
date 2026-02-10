@@ -2,9 +2,11 @@ package com.example.performance_management_system.auth.service;
 
 import com.example.performance_management_system.auth.model.PasswordResetToken;
 import com.example.performance_management_system.auth.repository.PasswordResetTokenRepository;
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.user.model.User;
 import com.example.performance_management_system.user.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -21,7 +23,8 @@ public class PasswordResetService {
     public PasswordResetService(
             PasswordResetTokenRepository tokenRepository,
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder
+    ) {
         this.tokenRepository = tokenRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -30,7 +33,11 @@ public class PasswordResetService {
     public String createResetToken(String email) {
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.USER_NOT_FOUND,
+                        "User not found"
+                ));
 
         PasswordResetToken token = new PasswordResetToken();
         token.setToken(UUID.randomUUID().toString());
@@ -47,18 +54,34 @@ public class PasswordResetService {
     public void resetPassword(String tokenValue, String newPassword) {
 
         PasswordResetToken token = tokenRepository.findByToken(tokenValue)
-                .orElseThrow(() -> new BusinessException("Invalid reset token"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.BAD_REQUEST,
+                        ErrorCode.VALIDATION_FAILED,
+                        "Invalid reset token"
+                ));
 
         if (token.getUsed()) {
-            throw new BusinessException("Reset token already used");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.VALIDATION_FAILED,
+                    "Reset token already used"
+            );
         }
 
         if (token.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new BusinessException("Reset token expired");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.VALIDATION_FAILED,
+                    "Reset token expired"
+            );
         }
 
         User user = userRepository.findById(token.getUserId())
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.USER_NOT_FOUND,
+                        "User not found"
+                ));
 
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);

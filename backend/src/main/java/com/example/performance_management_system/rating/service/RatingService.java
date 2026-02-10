@@ -1,5 +1,6 @@
 package com.example.performance_management_system.rating.service;
 
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.performancecycle.model.CycleStatus;
@@ -12,6 +13,7 @@ import com.example.performance_management_system.rating.repository.RatingReposit
 import com.example.performance_management_system.user.service.HierarchyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,13 +27,17 @@ public class RatingService {
     private final PerformanceCycleService cycleService;
     private final HierarchyService hierarchyService;
 
-    public RatingService(RatingRepository repository,
-                         PerformanceCycleService cycleService,
-                         HierarchyService hierarchyService) {
+    public RatingService(
+            RatingRepository repository,
+            PerformanceCycleService cycleService,
+            HierarchyService hierarchyService
+    ) {
         this.repository = repository;
         this.cycleService = cycleService;
         this.hierarchyService = hierarchyService;
     }
+
+    /* ================= CREATE ================= */
 
     @PreAuthorize("hasRole('MANAGER') or hasRole('HR')")
     @Transactional
@@ -43,6 +49,8 @@ public class RatingService {
                 req.employeeId, cycle
         ).isPresent()) {
             throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.RATING_ALREADY_EXISTS,
                     "Rating already exists for this employee in this cycle"
             );
         }
@@ -51,7 +59,7 @@ public class RatingService {
         rating.setEmployeeId(req.employeeId);
         rating.setPerformanceCycle(cycle);
 
-        // 🔥 THIS IS THE KEY LINE
+        // 🔥 enforce hierarchy consistency
         Long managerId = hierarchyService.getManagerId(req.employeeId);
         rating.setManagerId(managerId);
 
@@ -61,6 +69,7 @@ public class RatingService {
         return repository.save(rating);
     }
 
+    /* ================= MANAGER ================= */
 
     @PreAuthorize("hasRole('MANAGER')")
     @Transactional
@@ -69,9 +78,12 @@ public class RatingService {
         Rating rating = get(ratingId);
 
         if (rating.getStatus() != RatingStatus.DRAFT) {
-            throw new BusinessException("Rating is not in draft state");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.RATING_INVALID_STATE,
+                    "Rating is not in draft state"
+            );
         }
-
 
         Long managerId = SecurityUtil.userId();
         String role = SecurityUtil.role();
@@ -87,34 +99,55 @@ public class RatingService {
         return repository.save(rating);
     }
 
+    /* ================= HR ================= */
 
     @PreAuthorize("hasRole('HR')")
     @Transactional
     public Rating calibrate(Long ratingId, CalibrateRatingRequest req) {
+
         Rating rating = get(ratingId);
+
         if (rating.getStatus() != RatingStatus.MANAGER_SUBMITTED) {
-            throw new BusinessException("Rating must be manager submitted before calibration");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.RATING_INVALID_STATE,
+                    "Rating must be manager submitted before calibration"
+            );
         }
 
         rating.calibrateByHr(req.newScore, req.justification);
         return repository.save(rating);
     }
 
+    /* ================= LEADERSHIP ================= */
+
     @PreAuthorize("hasRole('LEADERSHIP')")
     @Transactional
     public Rating finalizeRating(Long ratingId) {
+
         Rating rating = get(ratingId);
+
         if (rating.getStatus() != RatingStatus.HR_CALIBRATED) {
-            throw new BusinessException("Rating must be calibrated before finalization");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.RATING_INVALID_STATE,
+                    "Rating must be calibrated before finalization"
+            );
         }
 
         rating.finalizeRating();
         return repository.save(rating);
     }
 
+    /* ================= READ ================= */
+
     private Rating get(Long id) {
         return repository.findById(id)
-                .orElseThrow(() -> new BusinessException("Rating not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.SYSTEM_ERROR, // can be RATING_NOT_FOUND later
+                        "Rating not found"
+                ));
     }
 
     public Page<Rating> getRatingsForCycle(
@@ -173,18 +206,26 @@ public class RatingService {
                         employeeId,
                         CycleStatus.ACTIVE
                 )
-                .orElseThrow(() ->
-                        new BusinessException("Rating not yet available"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.RATING_INVALID_STATE,
+                        "Rating not yet available"
+                ));
     }
 
     public Rating getMyFinalRating(Long employeeId) {
+
         return repository.findByEmployeeIdAndStatus(
                 employeeId,
                 RatingStatus.FINALIZED
-        ).orElseThrow(() ->
-                new BusinessException("Rating not finalized yet")
-        );
+        ).orElseThrow(() -> new BusinessException(
+                HttpStatus.NOT_FOUND,
+                ErrorCode.RATING_INVALID_STATE,
+                "Rating not finalized yet"
+        ));
     }
+
+    /* ================= UPDATE ================= */
 
     @PreAuthorize("hasRole('MANAGER')")
     @Transactional
@@ -193,14 +234,23 @@ public class RatingService {
             Double score,
             String justification
     ) {
+
         Rating rating = get(ratingId);
 
         if (!rating.getManagerId().equals(SecurityUtil.userId())) {
-            throw new BusinessException("Unauthorized");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    ErrorCode.ACCESS_DENIED,
+                    "Unauthorized"
+            );
         }
 
         if (rating.getStatus() != RatingStatus.DRAFT) {
-            throw new BusinessException("Rating cannot be edited now");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.RATING_INVALID_STATE,
+                    "Rating cannot be edited now"
+            );
         }
 
         rating.setScore(score);
@@ -208,8 +258,4 @@ public class RatingService {
 
         return repository.save(rating);
     }
-
-
-
 }
-

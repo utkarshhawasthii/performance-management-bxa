@@ -2,6 +2,7 @@ package com.example.performance_management_system.user.service;
 
 import com.example.performance_management_system.common.enums.DepartmentType;
 import com.example.performance_management_system.common.enums.Role;
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.department.model.Department;
@@ -21,6 +22,7 @@ import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -35,12 +37,12 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuditEventProducer auditEventProducer;
 
-
-    public UserService(UserRepository userRepository,
-                       RoleRepository roleRepository,
-                       DepartmentService departmentService,
-                       PasswordEncoder passwordEncoder,
-                       AuditEventProducer auditEventProducer
+    public UserService(
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            DepartmentService departmentService,
+            PasswordEncoder passwordEncoder,
+            AuditEventProducer auditEventProducer
     ) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -52,20 +54,35 @@ public class UserService {
     @Transactional
     public User createUser(@Valid CreateUserRequest request) {
 
-        // RBAC SAFETY
         String currentRole = SecurityUtil.role();
         if (!currentRole.equals("ADMIN") && !currentRole.equals("HR")) {
-            throw new BusinessException("Only HR or ADMIN can create users");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    ErrorCode.ACCESS_DENIED,
+                    "Only HR or ADMIN can create users"
+            );
         }
 
         RoleEntity role = roleRepository.findByName(request.role)
-                .orElseThrow(() -> new BusinessException("Role not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.SYSTEM_ERROR,
+                        "Role not found"
+                ));
 
         Department department = departmentService.getOrCreate(
                 request.departmentType,
                 request.departmentDisplayName,
                 request.managerId
         );
+
+        if (userRepository.findByEmail(request.email).isPresent()) {
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.USER_ALREADY_EXISTS,
+                    "Email already in use"
+            );
+        }
 
         User user = new User();
         user.setName(request.username);
@@ -81,18 +98,25 @@ public class UserService {
 
     public User getByEmail(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.USER_NOT_FOUND,
+                        "User not found"
+                ));
     }
 
     public User getById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("User not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.USER_NOT_FOUND,
+                        "User not found"
+                ));
     }
 
     public User getCurrentUser() {
         Long userId = SecurityUtil.userId();
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        return getById(userId);
     }
 
     @Transactional
@@ -100,13 +124,15 @@ public class UserService {
 
         Long userId = SecurityUtil.userId();
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        User user = getById(userId);
 
-        // Optional: prevent duplicate email
         if (!user.getEmail().equals(email)
                 && userRepository.findByEmail(email).isPresent()) {
-            throw new BusinessException("Email already in use");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.USER_ALREADY_EXISTS,
+                    "Email already in use"
+            );
         }
 
         user.setName(name);
@@ -115,42 +141,47 @@ public class UserService {
         return userRepository.save(user);
     }
 
-
     public Page<User> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable);
     }
 
-
     @Transactional
     public User updateUser(Long userId, UpdateUserRequest request) {
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException("User not found"));
+        User user = getById(userId);
 
-        // Optional safety: prevent self-update via admin API
         if (SecurityUtil.userId().equals(userId)) {
-            throw new BusinessException("Use /api/auth/me to update your own profile");
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    ErrorCode.VALIDATION_FAILED,
+                    "Use /api/auth/me to update your own profile"
+            );
         }
 
-        String oldRole = user.getRole().getName().name();
-        Long oldDepartmentId = user.getDepartment().getId();
-
-
-
-        // Email uniqueness check
         if (!user.getEmail().equals(request.email)
                 && userRepository.findByEmail(request.email).isPresent()) {
-            throw new BusinessException("Email already in use");
+            throw new BusinessException(
+                    HttpStatus.CONFLICT,
+                    ErrorCode.USER_ALREADY_EXISTS,
+                    "Email already in use"
+            );
         }
 
         RoleEntity role = roleRepository.findByName(request.role)
-                .orElseThrow(() -> new BusinessException("Role not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.SYSTEM_ERROR,
+                        "Role not found"
+                ));
 
         Department department = departmentService.getOrCreate(
                 request.departmentType,
                 request.departmentDisplayName,
                 request.managerId
         );
+
+        String oldRole = user.getRole().getName().name();
+        Long oldDepartmentId = user.getDepartment().getId();
 
         user.setName(request.name);
         user.setEmail(request.email);
@@ -177,35 +208,16 @@ public class UserService {
         auditEventProducer.publish(event);
 
         return updated;
-
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    public User registerUser(String name,
-                             String email,
-                             String password,
-                             Role role,
-                             DepartmentType departmentType,
-                             Long managerId) {
+    public User registerUser(
+            String name,
+            String email,
+            String password,
+            Role role,
+            DepartmentType departmentType,
+            Long managerId
+    ) {
 
         CreateUserRequest request = new CreateUserRequest();
         request.username = name;
@@ -217,5 +229,4 @@ public class UserService {
 
         return createUser(request);
     }
-
 }

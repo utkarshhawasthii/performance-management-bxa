@@ -1,5 +1,6 @@
 package com.example.performance_management_system.goal.service;
 
+import com.example.performance_management_system.common.error.ErrorCode;
 import com.example.performance_management_system.common.exception.BusinessException;
 import com.example.performance_management_system.config.security.SecurityUtil;
 import com.example.performance_management_system.goal.dto.CreateGoalRequest;
@@ -15,11 +16,10 @@ import com.example.performance_management_system.performancecycle.service.Perfor
 import com.example.performance_management_system.user.service.HierarchyService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 import java.util.List;
 
@@ -79,7 +79,9 @@ public class GoalService {
 
     @Transactional
     public GoalResponse submitGoal(Long goalId) {
+
         Goal goal = findGoal(goalId);
+
         goal.submit();
         return toGoalResponse(goalRepository.save(goal));
     }
@@ -99,6 +101,7 @@ public class GoalService {
 
         goal.approve();
         autoCompleteGoalIfEligible(goal);
+
         return toGoalResponse(goalRepository.save(goal));
     }
 
@@ -122,7 +125,6 @@ public class GoalService {
 
         Long managerId = SecurityUtil.userId();
         PerformanceCycle activeCycle = cycleService.getActiveCycle();
-        System.out.println(activeCycle.getName());
 
         List<Long> reporteeIds =
                 hierarchyService.getDirectReporteeIds(managerId);
@@ -144,7 +146,11 @@ public class GoalService {
 
     private Goal findGoal(Long id) {
         return goalRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("Goal not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        ErrorCode.GOAL_NOT_FOUND,
+                        "Goal not found"
+                ));
     }
 
     private GoalResponse toGoalResponse(Goal goal) {
@@ -212,6 +218,7 @@ public class GoalService {
     }
 
     public void autoCompleteGoalIfEligible(Goal goal) {
+
         boolean allDone = goal.getKeyResults().stream()
                 .allMatch(kr -> kr.getCurrentValue() >= kr.getTargetValue());
 
@@ -219,6 +226,4 @@ public class GoalService {
             goal.setStatus(GoalStatus.COMPLETED);
         }
     }
-
-
 }

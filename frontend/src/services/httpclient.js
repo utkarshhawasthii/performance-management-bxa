@@ -8,7 +8,7 @@ const httpClient = axios.create({
   }
 });
 
-// 🔥 Attach JWT to every request
+// Attach JWT to every request
 httpClient.interceptors.request.use((config) => {
   const token = authStore.getState().token;
 
