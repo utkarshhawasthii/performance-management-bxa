@@ -4,10 +4,11 @@ import {
   submitGoalApi,
   approveGoalApi,
   rejectGoalApi,
-  getTeamGoalsApi,   // API function
+  getTeamGoalsApi,
   updateKeyResultProgressApi
 } from "./goals.api";
 
+const PAGE_SIZE = 25;
 
 const initialState = {
   goals: [],
@@ -18,44 +19,61 @@ const initialState = {
   error: null
 };
 
-
 let state = { ...initialState };
 let listeners = [];
+let myGoalsRequestId = 0;
+let teamGoalsRequestId = 0;
 
 export const goalsStore = {
   getState: () => state,
   subscribe(listener) {
     listeners.push(listener);
     return () => {
-      listeners = listeners.filter(l => l !== listener);
+      listeners = listeners.filter((l) => l !== listener);
     };
   }
 };
 
 function setState(newState) {
   state = { ...state, ...newState };
-  listeners.forEach(l => l(state));
+  listeners.forEach((l) => l(state));
+}
+
+function normalizePagedResponse(response) {
+  const data = response?.data ?? {};
+  return {
+    content: Array.isArray(data.content) ? data.content : [],
+    page: Number.isInteger(data.number) ? data.number : 0,
+    totalPages: Number.isInteger(data.totalPages) ? data.totalPages : 0
+  };
 }
 
 export async function fetchMyGoals(page = 0) {
+  const requestId = ++myGoalsRequestId;
   try {
-    setState({ loading: true });
+    setState({ loading: true, error: null });
+    const res = await getMyGoalsApi(page, PAGE_SIZE);
 
-    const res = await getMyGoalsApi(page);
+    if (requestId !== myGoalsRequestId) {
+      return;
+    }
 
-    console.log("Goals API response:", res.data); //  ADD THIS
-
+    const normalized = normalizePagedResponse(res);
     setState({
-      goals: res.data.content || [],   //  IMPORTANT
-      page: res.data.number,
-      totalPages: res.data.totalPages,
+      goals: normalized.content,
+      page: normalized.page,
+      totalPages: normalized.totalPages,
       loading: false
     });
   } catch (e) {
-    console.error("Fetch goals failed", e);
+    if (requestId !== myGoalsRequestId) {
+      return;
+    }
+
     setState({
       goals: [],
-      loading: false
+      loading: false,
+      error: e?.response?.data?.message || "Unable to load goals right now."
     });
   }
 }
@@ -67,63 +85,73 @@ export async function createGoal(payload) {
 
 export async function submitGoal(id) {
   await submitGoalApi(id);
-  fetchMyGoals();
+  fetchMyGoals(state.page);
 }
 
 export async function approveGoal(id) {
   await approveGoalApi(id);
-  fetchTeamGoals();
+  fetchTeamGoals(state.page);
 }
-
 
 export async function rejectGoal(id, reason) {
   await rejectGoalApi(id, reason);
-  fetchTeamGoals(); // refresh manager view
+  fetchTeamGoals(state.page);
 }
 
 export async function fetchTeamGoals(page = 0) {
+  const requestId = ++teamGoalsRequestId;
   try {
-    setState({ loading: true });
-    const res = await getTeamGoalsApi(page);
+    setState({ loading: true, error: null });
+    const res = await getTeamGoalsApi(page, PAGE_SIZE);
+
+    if (requestId !== teamGoalsRequestId) {
+      return;
+    }
+
+    const normalized = normalizePagedResponse(res);
     setState({
-      teamGoals: res.data.content || [],
-      page: res.data.number,
-      totalPages: res.data.totalPages,
+      teamGoals: normalized.content,
+      page: normalized.page,
+      totalPages: normalized.totalPages,
       loading: false
     });
-  } catch {
-    setState({ goals: [], loading: false });
+  } catch (e) {
+    if (requestId !== teamGoalsRequestId) {
+      return;
+    }
+
+    setState({
+      teamGoals: [],
+      loading: false,
+      error: e?.response?.data?.message || "Unable to load team goals right now."
+    });
   }
+}
+
+function updateKeyResultInGoals(goals, keyResultId, value) {
+  if (!Array.isArray(goals)) {
+    return [];
+  }
+
+  return goals.map((goal) => ({
+    ...goal,
+    keyResults: Array.isArray(goal.keyResults)
+      ? goal.keyResults.map((kr) =>
+          kr.id === keyResultId ? { ...kr, currentValue: value } : kr
+        )
+      : []
+  }));
 }
 
 export async function updateKeyResultProgress(keyResultId, value) {
   try {
     await updateKeyResultProgressApi(keyResultId, value);
 
-    // 🔥 Optimistic update in store
     setState({
-      myGoals: state.myGoals.map(goal => ({
-        ...goal,
-        keyResults: goal.keyResults.map(kr =>
-          kr.id === keyResultId
-            ? { ...kr, currentValue: value }
-            : kr
-        )
-      })),
-      teamGoals: state.teamGoals.map(goal => ({
-        ...goal,
-        keyResults: goal.keyResults.map(kr =>
-          kr.id === keyResultId
-            ? { ...kr, currentValue: value }
-            : kr
-        )
-      }))
+      goals: updateKeyResultInGoals(state.goals, keyResultId, value),
+      teamGoals: updateKeyResultInGoals(state.teamGoals, keyResultId, value)
     });
-  } catch (e) {
+  } catch {
     alert("Failed to update progress");
   }
 }
-
-
-
-
