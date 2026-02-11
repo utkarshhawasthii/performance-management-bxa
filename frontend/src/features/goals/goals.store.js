@@ -50,10 +50,6 @@ function normalizePagedResponse(response) {
   };
 }
 
-function getErrorMessage(error, fallback) {
-  return error?.response?.data?.message || fallback;
-}
-
 export async function fetchMyGoals(page = 0) {
   const requestId = ++myGoalsRequestId;
   try {
@@ -79,7 +75,7 @@ export async function fetchMyGoals(page = 0) {
     setState({
       goals: [],
       loading: false,
-      error: getErrorMessage(e, "Unable to load goals right now.")
+      error: e?.response?.data?.message || "Unable to load goals right now."
     });
   }
 }
@@ -124,42 +120,18 @@ export async function deleteGoal(id) {
 }
 
 export async function submitGoal(id) {
-  try {
-    setState({ error: null });
-    await submitGoalApi(id);
-    await fetchMyGoals(state.page);
-    return { ok: true };
-  } catch (e) {
-    const message = getErrorMessage(e, "Unable to submit goal.");
-    setState({ error: message });
-    return { ok: false, message };
-  }
+  await submitGoalApi(id);
+  fetchMyGoals(state.page);
 }
 
 export async function approveGoal(id) {
-  try {
-    setState({ error: null });
-    await approveGoalApi(id);
-    await fetchTeamGoals(state.page);
-    return { ok: true };
-  } catch (e) {
-    const message = getErrorMessage(e, "Unable to approve goal.");
-    setState({ error: message });
-    return { ok: false, message };
-  }
+  await approveGoalApi(id);
+  fetchTeamGoals(state.page);
 }
 
 export async function rejectGoal(id, reason) {
-  try {
-    setState({ error: null });
-    await rejectGoalApi(id, reason);
-    await fetchTeamGoals(state.page);
-    return { ok: true };
-  } catch (e) {
-    const message = getErrorMessage(e, "Unable to reject goal.");
-    setState({ error: message });
-    return { ok: false, message };
-  }
+  await rejectGoalApi(id, reason);
+  fetchTeamGoals(state.page);
 }
 
 export async function fetchTeamGoals(page = 0) {
@@ -187,9 +159,18 @@ export async function fetchTeamGoals(page = 0) {
     setState({
       teamGoals: [],
       loading: false,
-      error: getErrorMessage(e, "Unable to load team goals right now.")
+      error: e?.response?.data?.message || "Unable to load team goals right now."
     });
   }
+
+  return goals.map((goal) => ({
+    ...goal,
+    keyResults: Array.isArray(goal.keyResults)
+      ? goal.keyResults.map((kr) =>
+          kr.id === keyResultId ? { ...kr, currentValue: value } : kr
+        )
+      : []
+  }));
 }
 
 function updateKeyResultInGoals(goals, keyResultId, value) {
@@ -216,10 +197,7 @@ export async function updateKeyResultProgress(keyResultId, value) {
       goals: updateKeyResultInGoals(state.goals, keyResultId, value),
       teamGoals: updateKeyResultInGoals(state.teamGoals, keyResultId, value)
     });
-    return { ok: true };
-  } catch (e) {
-    const message = getErrorMessage(e, "Failed to update progress");
-    setState({ error: message });
-    return { ok: false, message };
+  } catch {
+    alert("Failed to update progress");
   }
 }
