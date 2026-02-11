@@ -50,8 +50,8 @@ public class Review {
     /* ---------- Domain Rules ---------- */
 
     public void submitSelfReview() {
-        if (status != ReviewStatus.NOT_STARTED) {
-            throw new IllegalStateException("Self-review already submitted");
+        if (status != ReviewStatus.NOT_STARTED && status != ReviewStatus.SELF_REVIEW_SUBMITTED) {
+            throw new IllegalStateException("Self-review cannot be updated at this stage");
         }
         status = ReviewStatus.SELF_REVIEW_SUBMITTED;
     }

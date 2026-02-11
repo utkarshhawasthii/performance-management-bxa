@@ -13,6 +13,7 @@ import com.example.performance_management_system.rating.repository.RatingReposit
 import com.example.performance_management_system.user.repository.UserRepository;
 import com.example.performance_management_system.user.service.HierarchyService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -164,17 +165,27 @@ public class RatingService {
             int page,
             int size
     ) {
+        Page<Rating> ratingsPage;
+
         if ("MANAGER".equals(SecurityUtil.role())) {
-            return repository.findByManagerIdAndPerformanceCycle_Id(
+            ratingsPage = repository.findByManagerIdAndPerformanceCycle_Id(
                     SecurityUtil.userId(),
+                    cycleId,
+                    PageRequest.of(page, size)
+            );
+        } else {
+            ratingsPage = repository.findByPerformanceCycle_Id(
                     cycleId,
                     PageRequest.of(page, size)
             );
         }
 
-        return repository.findByPerformanceCycle_Id(
-                cycleId,
-                PageRequest.of(page, size)
+        var enrichedRatings = enrichRatingsWithEmployeeNames(ratingsPage.getContent());
+
+        return new PageImpl<>(
+                enrichedRatings,
+                ratingsPage.getPageable(),
+                ratingsPage.getTotalElements()
         );
     }
 
