@@ -67,8 +67,8 @@ const Sidebar = () => {
 
         {user?.role === "MANAGER" && (
             <>
-            <NavItem to="/goals/team" icon={Icons.Users}>Team Goals</NavItem>
-            <NavItem to="/reviews/team">Team Reviews</NavItem>
+            <NavItem to="/goals/team" icon={Icons.Users}>Goal Approvals</NavItem>
+            <NavItem to="/reviews/team">Team Performance</NavItem>
             </>
         )}
 

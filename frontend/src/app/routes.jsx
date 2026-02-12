@@ -17,7 +17,7 @@ import ManagerRatingsPage from "../features/ratings/pages/ManagerRatingsPage";
 import HrCalibrationPage from "../features/ratings/pages/HrCalibrationPage";
 import FinalRatingsPage from "../features/ratings/pages/FinalRatingsPage";
 import MyReviewPage from "../features/reviews/pages/MyReviewPage";
-import TeamReviewsPage from "../features/reviews/pages/TeamReviewsPage";
+import TeamPerformancePage from "../features/reviews/pages/TeamPerformancePage";
 import TeamRatingsPage from "../features/ratings/pages/TeamRatingsPage";
 import MyRatingPage from "../features/ratings/pages/MyRatingPage";
 import ProfilePage from "../auth/pages/profile";
@@ -36,7 +36,7 @@ const AppRoutes = () => {
             <Route path="/goals" element={<MyGoalsPage />} />
             <Route path="/goals/team" element={<TeamGoalsPage />} />
             <Route path="/reviews/my" element={<MyReviewPage />} />
-            <Route path="/reviews/team" element={<RequireRole roles={["MANAGER"]}><TeamReviewsPage /></RequireRole>} />
+            <Route path="/reviews/team" element={<RequireRole roles={["MANAGER"]}><TeamPerformancePage /></RequireRole>} />
 
             <Route path="/ratings/team" element={<RequireRole roles={["MANAGER"]}><TeamRatingsPage /></RequireRole>} />
             <Route path="/ratings/my" element={<RequireRole roles={["EMPLOYEE"]}><MyRatingPage /></RequireRole>} />
